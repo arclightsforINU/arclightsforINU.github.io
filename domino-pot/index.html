@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="수업 시간의 Domino 3 LEDs 주기(1000ms)를 가변저항으로 500~3000ms 사이에서 조정하도록 바꾼 Arduino Uno 실습. 설계 과정, 연결도, TaskScheduler 스케치, 검증, 동작 영상.">
+  <title>가변저항으로 Domino 3 LEDs 주기 조정하기</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1f3a'/%3E%3Ccircle cx='32' cy='28' r='16' fill='%23ee2f3b'/%3E%3Ccircle cx='27' cy='23' r='5' fill='%23ff8a8f'/%3E%3Cpath d='M24 45v11m16-11v11' stroke='%23d7e2ef' stroke-width='4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fbfcfe;
+      --ink: #0b1f3a;
+      --muted: #53647a;
+      --line: #cad7e6;
+      --grid: rgba(46, 111, 178, 0.075);
+      --blue: #1265a8;
+      --blue-soft: #eaf4fd;
+      --red: #e82936;
+      --red-deep: #a90f1e;
+      --red-soft: #ffe8ea;
+      --shadow: 0 18px 50px rgba(11, 31, 58, 0.09);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
+      overflow-wrap: anywhere;
+    }
+
+    a {
+      color: var(--blue);
+      text-underline-offset: 0.2em;
+      text-decoration-thickness: 1px;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a,
+    select {
+      outline-offset: 4px;
+    }
+
+    :focus-visible {
+      outline: 3px solid #0b76c5;
+    }
+
+    .page {
+      width: min(1040px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      padding: 54px 0 26px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--blue);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 28px;
+      height: 3px;
+      background: var(--red);
+      content: "";
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin-bottom: 20px;
+      font-size: clamp(2.35rem, 7vw, 5rem);
+      line-height: 1.05;
+      letter-spacing: -0.055em;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    main {
+      padding: 48px 0 100px;
+    }
+
+    section {
+      margin-top: 76px;
+      scroll-margin-top: 20px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 26px;
+      font-size: clamp(1.7rem, 4vw, 2.55rem);
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .section-number {
+      flex: none;
+      color: var(--red);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+    }
+
+    h3 {
+      margin-bottom: 12px;
+      font-size: 1.14rem;
+      line-height: 1.4;
+    }
+
+    .goal-grid,
+    .wiring-grid,
+    .explain-grid,
+    .verification-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .note,
+    .panel {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .note p:last-child,
+    .panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    .note strong {
+      color: var(--red-deep);
+    }
+
+    .simulator {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .simulator-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 22px;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .simulator-kicker {
+      margin: 0;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .simulator-note {
+      margin: 0;
+      color: #c7d7e8;
+      font-size: 0.82rem;
+      text-align: right;
+    }
+
+    .stage {
+      padding: clamp(28px, 6vw, 56px) 22px 30px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(18, 101, 168, 0.16), transparent 55%),
+        #f7fbff;
+    }
+
+    .led-bank {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(54px, 104px));
+      justify-content: center;
+      gap: clamp(12px, 4vw, 30px);
+    }
+
+    .led-unit {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .led {
+      position: relative;
+      width: min(15vw, 82px);
+      min-width: 52px;
+      aspect-ratio: 1;
+      border: 4px solid #718096;
+      border-radius: 50% 50% 44% 44%;
+      background: #e8edf2;
+      box-shadow: inset -10px -12px 16px rgba(11, 31, 58, 0.15);
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .led::before {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 24%;
+      height: 20%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      content: "";
+    }
+
+    .led::after {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      width: 44%;
+      height: 18px;
+      border-right: 3px solid #78889b;
+      border-left: 3px solid #78889b;
+      content: "";
+      transform: translateX(-50%);
+    }
+
+    .led.is-on {
+      border-color: #c71120;
+      background: var(--red);
+      box-shadow:
+        inset -10px -12px 18px rgba(121, 0, 9, 0.32),
+        0 0 0 8px rgba(232, 41, 54, 0.1),
+        0 0 30px rgba(232, 41, 54, 0.62);
+    }
+
+    .led[data-led="0"].is-on {
+      border-color: #1679d7;
+      background: #40bfff;
+      box-shadow: inset -10px -12px 18px #1265a844, 0 0 30px #40bfffa0;
+    }
+
+    .led[data-led="2"].is-on {
+      border-color: #7294b5;
+      background: #fff;
+      box-shadow: inset -10px -12px 18px #cde5ff, 0 0 30px #b7d9ff;
+    }
+
+    .led[data-led="3"].is-on {
+      border-color: #14863c;
+      background: #57e77e;
+      box-shadow: inset -10px -12px 18px #14863c44, 0 0 30px #57e77ea0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .led { transition: none; }
+    }
+
+    .state-readout {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px 18px;
+      margin-top: 38px;
+      text-align: center;
+    }
+
+    .state-number {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .state-bits {
+      padding: 7px 13px;
+      border: 1px solid #aebed0;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--red-deep);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .control-button,
+    .speed-select {
+      min-height: 44px;
+      border: 1px solid #9eb0c5;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .control-button {
+      padding: 9px 16px;
+      cursor: pointer;
+    }
+
+    .control-button.primary {
+      border-color: var(--red-deep);
+      color: #fff;
+      background: var(--red-deep);
+    }
+
+    .control-button:hover,
+    .speed-select:hover {
+      border-color: var(--blue);
+    }
+
+    .speed-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .speed-select {
+      padding: 8px 34px 8px 11px;
+    }
+
+    .pattern-heading {
+      margin: 34px 0 15px;
+    }
+
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pattern-card {
+      min-width: 0;
+      padding: 13px 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .pattern-card:hover {
+      border-color: var(--blue);
+    }
+
+    .pattern-card[aria-current="step"] {
+      border-color: var(--red);
+      background: var(--red-soft);
+      box-shadow: inset 0 0 0 1px var(--red);
+    }
+
+    .pattern-index {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .mini-leds {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .mini-led {
+      width: 10px;
+      height: 10px;
+      border: 1px solid #8a9aac;
+      border-radius: 50%;
+      background: #dce4ec;
+    }
+
+    .mini-led.on {
+      border-color: var(--red-deep);
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(232, 41, 54, 0.55);
+    }
+
+    .pattern-bits {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    .diagram-wrap {
+      overflow-x: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      width: 100%;
+      min-width: 760px;
+      height: auto;
+    }
+
+    .parts-list,
+    .pin-list {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    .pin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    .pin-table th,
+    .pin-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .pin-table th {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .code-shell {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      background: #071629;
+      box-shadow: var(--shadow);
+    }
+
+    .code-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid #30465f;
+      color: #cfdeed;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      padding: 24px;
+      color: #e8f2fb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      tab-size: 2;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .formula {
+      display: block;
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 15px;
+      border-left: 4px solid var(--red);
+      background: #fff;
+      color: var(--red-deep);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .verified {
+      border-top: 4px solid var(--blue);
+    }
+
+    .status-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+
+    .status-label::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .media-figure {
+      margin: 24px 0;
+    }
+
+    .media-figure img,
+    .media-figure video {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .media-figure img { padding: 16px; }
+    .media-figure video { aspect-ratio: 16 / 9; background: #0b1f3a; }
+
+    figcaption {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .asset-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      margin: 16px 0;
+      font-weight: 700;
+    }
+
+    details { margin-top: 24px; }
+    summary { cursor: pointer; font-weight: 800; margin-bottom: 16px; }
+    .video-chapters { margin-top: 18px; }
+    .video-chapters button { margin: 0 8px 8px 0; }
+
+    footer {
+      padding: 24px 0 48px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 28px, 1040px);
+      }
+
+      .site-header {
+        padding-top: 36px;
+      }
+
+      main {
+        padding-top: 36px;
+      }
+
+      section {
+        margin-top: 58px;
+      }
+
+      .goal-grid,
+      .wiring-grid,
+      .explain-grid,
+      .verification-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pattern-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .simulator-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .simulator-note {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 420px) {
+      body {
+        font-size: 16px;
+      }
+
+      h1 {
+        font-size: 2.28rem;
+      }
+
+      .led-bank {
+        gap: 9px;
+      }
+
+      .led {
+        min-width: 48px;
+      }
+
+      .controls {
+        justify-content: stretch;
+      }
+
+      .control-button {
+        flex: 1 1 30%;
+      }
+
+      .speed-wrap {
+        justify-content: space-between;
+        width: 100%;
+        margin: 4px 0 0;
+      }
+
+      .speed-select {
+        flex: 1;
+      }
+    }
+
+    body { word-break: keep-all; }
+    .led-bank.three { grid-template-columns: repeat(3, minmax(54px, 104px)); }
+    .led[data-color="blue"].is-on { border-color: #1679d7; background: #40bfff; box-shadow: inset -10px -12px 18px #1265a844, 0 0 30px #40bfffa0; }
+    .led[data-color="green"].is-on { border-color: #14863c; background: #57e77e; box-shadow: inset -10px -12px 18px #14863c44, 0 0 30px #57e77ea0; }
+
+    .pot-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      max-width: 620px;
+      margin: 34px auto 0;
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .pot-row input[type="range"] { width: 100%; accent-color: var(--red-deep); }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      max-width: 620px;
+      margin: 18px auto 0;
+      text-align: center;
+    }
+
+    .readout {
+      padding: 10px 8px;
+      border: 1px solid #aebed0;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .readout span { display: block; color: var(--muted); font-size: 0.74rem; font-weight: 800; }
+    .readout strong { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.05rem; color: var(--red-deep); }
+
+    .timeline {
+      position: relative;
+      max-width: 620px;
+      height: 46px;
+      margin: 26px auto 0;
+      border: 1px solid #aebed0;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--red-soft) 0 60%, #fff 60% 100%);
+    }
+
+    .timeline .mark {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 2px dashed #9eb0c5;
+    }
+
+    .timeline .mark span {
+      position: absolute;
+      top: 100%;
+      left: -1px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: translateX(-50%);
+    }
+
+    .timeline .head {
+      position: absolute;
+      top: -6px;
+      bottom: -6px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .timeline-caption { max-width: 620px; margin: 34px auto 0; color: var(--muted); font-size: 0.84rem; text-align: center; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .data-table th { color: var(--muted); font-size: 0.8rem; }
+    .data-table td.bad { color: var(--red-deep); font-weight: 800; }
+    .data-table td.ok { color: #14863c; font-weight: 800; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .code-shell.light pre { font-size: 0.84rem; }
+    .code-toolbar a { color: #9fd2ff; }
+    #videoFigure video { aspect-ratio: auto; max-height: 80vh; object-fit: contain; }
+    .back-link { display: inline-block; margin-bottom: 18px; font-size: 0.9rem; font-weight: 800; }
+
+    @media (max-width: 760px) {
+      .two-col { grid-template-columns: 1fr; }
+      .readout-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header page">
+    <a class="back-link" href="../">← 아두이노 실습 기록</a>
+    <p class="eyebrow">아두이노 실습 기록</p>
+    <h1>가변저항으로<br>Domino 3 LEDs의 주기 조정하기</h1>
+    <p class="lead">수업 시간에 만든 Domino 3 LEDs는 주기가 1000ms로 고정되어 있다. 가변저항을 A0에 연결해 이 주기를 500ms부터 3000ms까지 손으로 조절할 수 있게 바꿨다.</p>
+    <div class="meta" aria-label="게시물 정보">
+      <span>202601537 박창우</span>
+      <span>Arduino Uno · TaskScheduler · 가변저항</span>
+      <span>주기 500 – 3000 ms</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <article>
+      <section aria-labelledby="start-title">
+        <h2 id="start-title"><span class="section-number">01</span>출발점: 수업 시간의 Domino 3 LEDs</h2>
+        <p>수업 코드는 TaskScheduler로 네 개의 작업을 같은 주기(1000ms)로 돌리고, 시작 시점만 0·100·200·600ms로 어긋나게 해서 도미노처럼 LED가 차례로 켜졌다가 함께 꺼지게 만든다.</p>
+        <div class="two-col">
+          <div class="code-shell">
+            <div class="code-toolbar"><span>수업 코드의 핵심 부분</span></div>
+            <pre><code>const unsigned int TASK_PERIOD = 1000;
+Task t1(TASK_PERIOD, TASK_FOREVER, &amp;onLED1, &amp;runner);
+Task t2(TASK_PERIOD, TASK_FOREVER, &amp;onLED2, &amp;runner);
+Task t3(TASK_PERIOD, TASK_FOREVER, &amp;onLED3, &amp;runner);
+Task t4(TASK_PERIOD, TASK_FOREVER, &amp;offLEDs, &amp;runner);
+
+t1.enable();             // 0 ms   D13 ON
+t2.enableDelayed(100);   // 100 ms D10 ON
+t3.enableDelayed(200);   // 200 ms D7  ON
+t4.enableDelayed(600);   // 600 ms 모두 OFF</code></pre>
+          </div>
+          <div class="note">
+            <h3>과제</h3>
+            <p>이 주기를 <strong>가변저항으로 500ms ~ 3000ms 사이에서 조정</strong>할 수 있도록 시스템을 설계한다.</p>
+            <p>여기서 <em>주기</em>는 D13이 켜진 순간부터 다음에 다시 켜지는 순간까지의 시간으로 정했다. 수업 코드에서는 이 값이 <code>TASK_PERIOD</code>다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="design-title">
+        <h2 id="design-title"><span class="section-number">02</span>설계: TASK_PERIOD만 바꾸면 안 되는 이유</h2>
+        <p>가장 먼저 떠오르는 방법은 가변저항 값으로 <code>TASK_PERIOD</code>만 바꾸는 것이다. 그런데 시작 지연(100·200·600ms)이 고정되어 있으면 양 끝에서 문제가 생긴다. 수업 코드에서 숫자만 바꿔 PC에서 실제 TaskScheduler 라이브러리로 돌려 본 결과다.</p>
+        <div class="two-col">
+          <div class="panel">
+            <h3>주기 500ms: 도미노가 깨진다</h3>
+            <p>끄는 시점(600ms)이 주기(500ms)보다 길어서, 끄기가 다음 주기 한가운데에 끼어든다.</p>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>시각</th><th>일어난 일</th></tr></thead>
+                <tbody>
+                  <tr><td>0 / 100 / 200 ms</td><td>D13 → D10 → D7 켜짐</td></tr>
+                  <tr><td>600 ms</td><td class="bad">모두 꺼짐 (2주기째 도중)</td></tr>
+                  <tr><td>700 ms</td><td class="bad">D7만 혼자 켜짐</td></tr>
+                  <tr><td>1100 ms</td><td class="bad">D10이 켜지자마자 같은 순간 꺼짐</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>주기 3000ms: 도미노 속도는 그대로</h3>
+            <p>600ms 동안 빠르게 도미노가 지나간 뒤 2400ms 동안 전부 꺼져 있다. 반복 간격만 길어질 뿐 도미노 자체는 느려지지 않는다.</p>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>시각</th><th>일어난 일</th></tr></thead>
+                <tbody>
+                  <tr><td>0 / 100 / 200 ms</td><td>D13 → D10 → D7 켜짐</td></tr>
+                  <tr><td>600 ms</td><td>모두 꺼짐</td></tr>
+                  <tr><td>600 – 3000 ms</td><td class="bad">2.4초 동안 아무것도 안 켜짐</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 32px;">해결: 시작 지연을 주기에 비례시킨다</h3>
+        <p>수업 코드의 비율(1000ms 중 0·100·200·600ms)을 그대로 유지해서, 주기를 P라고 할 때 <strong>0, P/10, P/5, 3P/5</strong>에 각 동작을 하도록 바꿨다. 그러면 주기가 바뀌어도 도미노의 모양은 같고, 전체가 빨라지거나 느려지기만 한다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>주기 P</th><th>D13 ON</th><th>D10 ON (P/10)</th><th>D7 ON (P/5)</th><th>모두 OFF (3P/5)</th></tr></thead>
+            <tbody>
+              <tr><td>500 ms (최소)</td><td>0</td><td>50</td><td>100</td><td>300</td></tr>
+              <tr><td>1000 ms (수업 코드)</td><td>0</td><td>100</td><td>200</td><td>600</td></tr>
+              <tr><td>1751 ms (가운데)</td><td>0</td><td>175</td><td>350</td><td>1050</td></tr>
+              <tr><td>3000 ms (최대)</td><td>0</td><td>300</td><td>600</td><td>1800</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="explain-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>가변저항 값 → 주기</h3>
+            <span class="formula">period = map(analogRead(A0), 0, 1023, 500, 3000)</span>
+            <p>A0의 0–1023 값을 500–3000ms로 직선 변환한다. 끝까지 돌리면 정확히 500ms와 3000ms가 되고, 눈금 하나는 약 2.4ms다.</p>
+          </div>
+          <div class="panel">
+            <h3>한 주기에 한 번만 읽는다</h3>
+            <p>가변저항은 주기가 시작될 때(D13을 켤 때) 한 번만 읽는다. 도중에 돌려도 진행 중인 도미노는 원래 박자로 끝나고, <strong>다음 주기부터</strong> 새 주기가 적용되어 패턴이 중간에 찢어지지 않는다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="simulation-title">
+        <h2 id="simulation-title"><span class="section-number">03</span>브라우저 시뮬레이션</h2>
+        <div class="simulator">
+          <div class="simulator-head">
+            <p class="simulator-kicker">가상 가변저항으로 돌려 보기</p>
+            <p class="simulator-note">실제 하드웨어 촬영 영상이 아닙니다. 스케치와 같은 규칙으로 계산합니다.</p>
+          </div>
+          <div class="stage">
+            <div class="led-bank three" aria-label="LED 출력 상태">
+              <div class="led-unit"><span class="led" data-color="blue" aria-hidden="true"></span><span>D13 · 파랑</span></div>
+              <div class="led-unit"><span class="led" data-color="red" aria-hidden="true"></span><span>D10 · 빨강</span></div>
+              <div class="led-unit"><span class="led" data-color="green" aria-hidden="true"></span><span>D7 · 초록</span></div>
+            </div>
+            <label class="pot-row" for="pot">
+              <span>A0</span>
+              <input id="pot" type="range" min="0" max="1023" step="1" value="205">
+              <span id="potValue">205</span>
+            </label>
+            <div class="readout-grid" aria-live="polite">
+              <div class="readout"><span>지금 주기</span><strong id="periodNow">1000 ms</strong></div>
+              <div class="readout"><span>다음 주기 (A0 기준)</span><strong id="periodNext">1000 ms</strong></div>
+              <div class="readout"><span>주기 안 경과</span><strong id="elapsed">0 ms</strong></div>
+            </div>
+            <div class="timeline" id="timeline" aria-hidden="true">
+              <div class="mark" style="left: 0%"><span>D13 ON</span></div>
+              <div class="mark" style="left: 10%"><span>D10</span></div>
+              <div class="mark" style="left: 20%"><span>D7</span></div>
+              <div class="mark" style="left: 60%"><span>OFF</span></div>
+              <div class="head" id="playhead" style="left: 0%"></div>
+            </div>
+            <p class="timeline-caption">막대 전체가 한 주기다. 붉은 구간(앞 60%) 동안 LED가 차례로 켜져 있고, 나머지 40%는 모두 꺼져 있다.</p>
+          </div>
+          <div class="controls">
+            <button class="control-button primary" id="toggleButton" type="button">일시정지</button>
+            <button class="control-button" type="button" data-pot="0">최소 · 500 ms</button>
+            <button class="control-button" type="button" data-pot="205">수업 값 · 1000 ms</button>
+            <button class="control-button" type="button" data-pot="1023">최대 · 3000 ms</button>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="wiring-title">
+        <h2 id="wiring-title"><span class="section-number">04</span>회로와 연결도</h2>
+        <p>LED 부분은 수업 회로 그대로다. D13·D10·D7에서 330Ω 저항을 거쳐 파랑·빨강·초록 LED의 애노드로 가고, 캐소드는 GND로 모은다. 여기에 가변저항 하나를 추가했다. <strong>양 끝 다리는 5V와 GND, 가운데 다리(와이퍼)는 A0</strong>에 연결한다. 가변저항은 전압 분배기로 동작해서 A0에 0~5V가 걸리고, Arduino는 이를 0~1023으로 읽는다.</p>
+        <figure class="media-figure">
+          <a href="assets/domino-pot-breadboard.svg" aria-label="브레드보드 연결도 크게 보기">
+            <img src="assets/domino-pot-breadboard.svg" alt="브레드보드 연결도. D13은 파랑 선으로 6열, D10은 빨강 선으로 12열, D7은 초록 선으로 18열에 연결되고 각 열에서 330옴 저항을 거쳐 LED 애노드로 간다. LED 캐소드는 위쪽 GND 레일로 모이고 검은 선으로 Arduino GND에 연결된다. 가변저항은 24, 26, 28열에 꽂혀 있으며 24열은 검은 선으로 GND, 가운데 26열은 노란 선으로 A0, 28열은 주황 선으로 5V에 연결된다." loading="lazy">
+          </a>
+          <figcaption>Fritzing 부품 그래픽으로 구성한 브레드보드 연결도. Arduino Uno·브레드보드·LED·저항은 지난 실습의 Fritzing 내보내기 그림을, 가변저항은 Fritzing 기본 부품 'Rotary Potentiometer (Large)' 그림(fritzing-parts, CC BY-SA)을 사용했다.</figcaption>
+        </figure>
+        <div class="asset-links">
+          <a href="assets/domino-pot-breadboard.svg" download>연결도 다운로드 (.svg)</a>
+          <a href="assets/domino-pot-breadboard.png" download>연결도 이미지 (.png)</a>
+        </div>
+
+        <details>
+          <summary>회로 기호로 연결 원리 보기</summary>
+          <div class="diagram-wrap" tabindex="0" aria-label="회로도. 작은 화면에서는 가로로 스크롤할 수 있습니다.">
+            <svg viewBox="0 0 960 520" role="img" aria-labelledby="circuitTitle circuitDesc">
+              <title id="circuitTitle">Domino 3 LEDs와 가변저항 회로도</title>
+              <desc id="circuitDesc">D13, D10, D7 출력이 각각 330옴 저항과 파랑, 빨강, 초록 LED를 지나 GND로 연결된다. 가변저항의 양 끝은 5V와 GND에, 와이퍼는 A0에 연결된다.</desc>
+              <rect x="40" y="54" width="210" height="400" rx="22" fill="#eef6fc" stroke="#0b1f3a" stroke-width="3"/>
+              <text x="145" y="94" text-anchor="middle" fill="#0b1f3a" font-size="22" font-weight="800">ARDUINO UNO</text>
+              <g fill="#0b1f3a" font-size="16" font-weight="800">
+                <text x="196" y="155">D13</text>
+                <text x="196" y="225">D10</text>
+                <text x="206" y="295">D7</text>
+                <text x="206" y="375">5V</text>
+                <text x="206" y="415">A0</text>
+                <text x="60" y="440">GND</text>
+              </g>
+              <g fill="#1265a8">
+                <circle cx="246" cy="150" r="6"/><circle cx="246" cy="220" r="6"/><circle cx="246" cy="290" r="6"/>
+                <circle cx="246" cy="370" r="6"/><circle cx="246" cy="410" r="6"/>
+              </g>
+              <g fill="none" stroke="#0b1f3a" stroke-width="3" stroke-linejoin="round">
+                <path d="M246 150 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H500"/>
+                <path d="M246 220 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H500"/>
+                <path d="M246 290 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H500"/>
+                <path d="M536 150 H700"/><path d="M536 220 H700"/><path d="M536 290 H700"/>
+                <path d="M700 150 V480 H90 V454"/>
+              </g>
+              <g fill="#53647a" font-size="14" font-weight="700" text-anchor="middle">
+                <text x="365" y="126">330 Ω</text><text x="365" y="196">330 Ω</text><text x="365" y="266">330 Ω</text>
+              </g>
+              <g stroke-width="2">
+                <path d="M500 128 L536 150 L500 172 Z" fill="#40bfff" stroke="#1679d7"/>
+                <path d="M500 198 L536 220 L500 242 Z" fill="#e82936" stroke="#a90f1e"/>
+                <path d="M500 268 L536 290 L500 312 Z" fill="#57e77e" stroke="#14863c"/>
+              </g>
+              <g stroke="#0b1f3a" stroke-width="4"><path d="M536 126 V174"/><path d="M536 196 V244"/><path d="M536 266 V314"/></g>
+              <g font-size="14" font-weight="800">
+                <text x="560" y="140" fill="#1265a8">BLUE</text><text x="560" y="210" fill="#a90f1e">RED</text><text x="560" y="280" fill="#14863c">GREEN</text>
+              </g>
+              <circle cx="700" cy="220" r="5" fill="#0b1f3a"/><circle cx="700" cy="290" r="5" fill="#0b1f3a"/>
+
+              <g fill="none" stroke="#0b1f3a" stroke-width="3" stroke-linejoin="round">
+                <path d="M246 370 H820 V384 l-12 8 24 12 -24 12 24 12 -24 12 12 8 V480 H700"/>
+              </g>
+              <path d="M246 410 H770" fill="none" stroke="#c49400" stroke-width="3"/>
+              <path d="M770 410 H800" fill="none" stroke="#c49400" stroke-width="3" marker-end="url(#wiperArrow)"/>
+              <defs>
+                <marker id="wiperArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c49400"/></marker>
+              </defs>
+              <circle cx="700" cy="480" r="5" fill="#0b1f3a"/>
+              <text x="846" y="420" fill="#0b1f3a" font-size="15" font-weight="800">가변저항</text>
+              <text x="846" y="440" fill="#53647a" font-size="13" font-weight="700">와이퍼 → A0</text>
+              <text x="560" y="403" fill="#c49400" font-size="13" font-weight="800">0 ~ 5 V</text>
+              <g stroke="#0b1f3a" stroke-width="3"><path d="M400 480 v18"/><path d="M380 498 h40"/><path d="M387 507 h26"/><path d="M394 516 h12"/></g>
+            </svg>
+          </div>
+        </details>
+
+        <div class="wiring-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>핀 연결</h3>
+            <table class="pin-table">
+              <thead><tr><th>Arduino</th><th>연결</th></tr></thead>
+              <tbody>
+                <tr><td>D13</td><td>330 Ω → 파랑 LED 애노드(+)</td></tr>
+                <tr><td>D10</td><td>330 Ω → 빨강 LED 애노드(+)</td></tr>
+                <tr><td>D7</td><td>330 Ω → 초록 LED 애노드(+)</td></tr>
+                <tr><td>GND</td><td>LED 캐소드(−) 3개, 가변저항 한쪽 끝</td></tr>
+                <tr><td>5V</td><td>가변저항 다른 쪽 끝</td></tr>
+                <tr><td>A0</td><td>가변저항 가운데 다리(와이퍼)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h3>준비물</h3>
+            <ul class="parts-list">
+              <li>Arduino Uno 1개</li>
+              <li>파랑·빨강·초록 LED 각 1개</li>
+              <li>330 Ω 저항 3개</li>
+              <li>가변저항(10 kΩ) 1개</li>
+              <li>브레드보드, 점퍼선</li>
+            </ul>
+            <p style="margin-top: 14px;">5V와 GND를 바꿔 꽂으면 돌리는 방향과 주기가 길어지는 방향만 반대로 바뀐다. <a href="https://docs.arduino.cc/built-in-examples/analog/AnalogInput/">Arduino 공식 AnalogInput 예제</a>와 같은 가변저항 배선이다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="sketch-title">
+        <h2 id="sketch-title"><span class="section-number">05</span>스케치</h2>
+        <p>수업 코드의 구조(TaskScheduler, 작업 4개)는 그대로 두고, 첫 번째 작업 <code>t1</code>이 매 주기의 시작을 맡도록 바꿨다. <code>t1</code>이 가변저항을 읽어 주기를 정하고, 나머지 세 작업은 그 주기에 맞춰 한 번씩만 예약한다.</p>
+        <div class="code-shell">
+          <div class="code-toolbar">
+            <span>domino_pot.ino</span>
+            <a href="domino_pot/domino_pot.ino" download>스케치 다운로드</a>
+          </div>
+          <pre><code>#include &lt;TaskScheduler.h&gt;
+
+const byte LED[] = {13, 10, 7};
+const byte POT = A0;
+
+Scheduler runner;
+
+void startCycle();
+void onLED2() { digitalWrite(LED[1], HIGH); }
+void onLED3() { digitalWrite(LED[2], HIGH); }
+void offLEDs() { for (byte pin : LED) digitalWrite(pin, LOW); }
+
+Task t1(1000, TASK_FOREVER, &amp;startCycle, &amp;runner, true);
+Task t2(TASK_IMMEDIATE, TASK_ONCE, &amp;onLED2, &amp;runner);
+Task t3(TASK_IMMEDIATE, TASK_ONCE, &amp;onLED3, &amp;runner);
+Task t4(TASK_IMMEDIATE, TASK_ONCE, &amp;offLEDs, &amp;runner);
+
+void startCycle() {
+  unsigned long period = map(analogRead(POT), 0, 1023, 500, 3000);
+  t1.setInterval(period);
+  digitalWrite(LED[0], HIGH);
+  t2.restartDelayed(period / 10);
+  t3.restartDelayed(period / 5);
+  t4.restartDelayed(period * 3 / 5);
+  Serial.println(period);
+}
+
+void setup() {
+  Serial.begin(115200);
+  for (byte pin : LED) pinMode(pin, OUTPUT);
+}
+
+void loop() {
+  runner.execute();
+}</code></pre>
+        </div>
+      </section>
+
+      <section aria-labelledby="explanation-title">
+        <h2 id="explanation-title"><span class="section-number">06</span>동작 원리</h2>
+        <div class="explain-grid">
+          <div class="panel">
+            <h3>1. <code>t1</code>이 주기를 정한다</h3>
+            <p><code>startCycle()</code>은 A0를 읽어 이번 주기 <code>period</code>를 계산하고 D13을 켠다. 수업 코드의 <code>onLED1()</code> 자리에 주기 계산이 더해진 것이다.</p>
+          </div>
+          <div class="panel">
+            <h3>2. <code>setInterval()</code>로 다음 시작을 맞춘다</h3>
+            <p>콜백 안에서 <code>t1.setInterval(period)</code>를 부르면 TaskScheduler는 지금부터 <code>period</code> 뒤에 <code>t1</code>을 다시 실행한다. 그래서 주기를 바꾼 그 순간부터 다음 주기의 길이가 정해진다.</p>
+          </div>
+          <div class="panel">
+            <h3>3. 나머지 작업은 매 주기 한 번씩 예약한다</h3>
+            <p><code>t2</code>~<code>t4</code>는 <code>TASK_ONCE</code>(한 번 실행 후 꺼짐)로 만들고, 매 주기 <code>restartDelayed()</code>로 P/10, P/5, 3P/5 뒤에 다시 예약한다. 주기가 달라져도 세 작업이 항상 <code>t1</code>을 기준으로 정렬된다.</p>
+          </div>
+          <div class="panel">
+            <h3>4. 수업 코드보다 짧아진 부분</h3>
+            <p>핀 번호를 배열 하나로 묶어 <code>pinMode</code>와 끄기를 반복문 한 줄로 처리했다. <code>Serial.println(period)</code>는 시리얼 모니터에서 현재 주기를 확인하기 위한 줄이다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="verification-title">
+        <h2 id="verification-title"><span class="section-number">07</span>검증</h2>
+        <div class="verification-grid">
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>Arduino Uno 컴파일</h3>
+            <p>Arduino IDE의 arduino-cli(AVR 코어 1.8.8, TaskScheduler 4.1.0)로 Uno 대상 컴파일에 성공했다. 프로그램 저장 공간 5,048바이트(15%), 전역 변수 393바이트(19%)다.</p>
+          </div>
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>실제 라이브러리로 타이밍 시뮬레이션</h3>
+            <p>스케치와 TaskScheduler 4.1.0 소스를 PC에서 그대로 컴파일하고 <code>millis()</code>·<code>analogRead()</code>만 가짜로 바꿔, 1ms 단위로 LED가 바뀌는 시각을 모두 기록해 기대값과 비교했다.</p>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top: 18px;">
+          <table class="data-table">
+            <thead><tr><th>시나리오 (A0 값)</th><th>측정된 주기</th><th>결과</th></tr></thead>
+            <tbody>
+              <tr><td>0 (최소)</td><td>500 ms × 10주기</td><td class="ok">일치</td></tr>
+              <tr><td>1023 (최대)</td><td>3000 ms × 5주기</td><td class="ok">일치</td></tr>
+              <tr><td>512 (가운데)</td><td>1751 ms × 5주기</td><td class="ok">일치</td></tr>
+              <tr><td>204</td><td>998 ms × 6주기</td><td class="ok">일치</td></tr>
+              <tr><td>0 → 1200ms에 1023으로 돌림</td><td>500, 500, 500, 3000, 3000</td><td class="ok">일치</td></tr>
+              <tr><td>1023 → 4000ms에 0으로 돌림</td><td>3000, 3000, 500, 500, …</td><td class="ok">일치</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top: 14px;">시뮬레이션 코드: <a href="../tools/sim/sim.cpp">sim.cpp</a>, <a href="../tools/sim/Arduino.h">Arduino.h</a> (가짜 시계·핀). 돌리는 중간에 값을 바꾼 두 시나리오에서, 진행 중이던 주기는 원래 길이로 끝나고 다음 주기부터 새 값이 적용되는 것을 확인했다. 검사가 정말 오류를 잡는지 보기 위해 일부러 틀린 스케치 두 개(시작 지연을 100·200·600ms로 고정한 것, <code>setInterval()</code>을 뺀 것)도 넣어 봤고, 둘 다 모든 시나리오에서 불일치로 나왔다.</p>
+        <h3 style="margin-top: 32px;">실물 영상에서 잰 주기</h3>
+        <p>아래 동작 영상을 30fps 프레임 단위로 읽어, LED 불빛이 켜지는 순간부터 다음에 다시 켜지는 순간까지의 시간을 쟀다. 가변저항을 양쪽 끝에 둔 구간을 골라 측정했고, 프레임 간격이 약 33ms이므로 그 정도 오차 안의 값이다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>영상 구간</th><th>가변저항</th><th>측정된 주기</th><th>켜져 있는 비율</th></tr></thead>
+            <tbody>
+              <tr><td>1.4 – 3.9초</td><td>최소 쪽 끝</td><td>500 ms × 5주기</td><td class="ok">0.60</td></tr>
+              <tr><td>13.2 – 22.2초</td><td>최대 쪽 끝</td><td>3000 ms × 3주기</td><td class="ok">0.60 – 0.61</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top: 14px;">양 끝에서 과제 범위의 500ms와 3000ms가 그대로 나왔고, 한 주기 중 LED가 켜져 있는 비율 0.60은 설계한 끄기 시점 3P/5와 같다. 측정 코드: <a href="../tools/video_periods.py">video_periods.py</a></p>
+      </section>
+
+      <section aria-labelledby="video-title">
+        <h2 id="video-title"><span class="section-number">08</span>실제 동작 영상</h2>
+        <figure class="media-figure" id="videoFigure" hidden>
+          <video controls playsinline preload="metadata" poster="assets/domino-pot-poster.jpg" aria-label="가변저항으로 주기를 바꾸는 Domino 3 LEDs 실제 동작 영상">
+            <source src="assets/domino-pot.mp4" type="video/mp4">
+          </video>
+          <figcaption>실제 제작한 회로의 동작 영상. 가변저항을 한쪽 끝에서 반대쪽 끝까지 돌리며 도미노 주기가 0.5초에서 3초까지 바뀌는 것을 촬영했다. 0.5초 주기는 약 1–4초, 3초 주기는 약 13–22초 구간에서 볼 수 있다.</figcaption>
+          <div class="video-chapters" aria-label="동작 영상 구간 이동">
+            <button class="control-button" type="button" data-video-time="1.4">0.5초 주기 구간</button>
+            <button class="control-button" type="button" data-video-time="13.2">3초 주기 구간</button>
+          </div>
+          <div class="asset-links"><a href="assets/domino-pot.mp4" download>동작 영상 다운로드 (.mp4)</a></div>
+        </figure>
+        <p class="note" id="videoPending">실물 회로 동작 영상은 촬영 후 이 자리에 올린다.</p>
+      </section>
+    </article>
+  </main>
+
+  <footer>
+    <div class="page">Arduino 실습 기록 · 브라우저 시뮬레이션은 스케치의 타이밍 규칙을 시각화한 것입니다.</div>
+  </footer>
+
+  <script>
+    const pot = document.querySelector("#pot");
+    const potValue = document.querySelector("#potValue");
+    const periodNow = document.querySelector("#periodNow");
+    const periodNext = document.querySelector("#periodNext");
+    const elapsedOut = document.querySelector("#elapsed");
+    const playhead = document.querySelector("#playhead");
+    const toggleButton = document.querySelector("#toggleButton");
+    const leds = [...document.querySelectorAll(".led")];
+    const toPeriod = value => Math.trunc(value * 2500 / 1023) + 500;
+    let period = toPeriod(Number(pot.value));
+    let cycleStart = performance.now();
+    let pausedAt = null;
+
+    function frame(now) {
+      if (pausedAt === null) {
+        if (now - cycleStart >= period) {
+          cycleStart = now - cycleStart >= 2 * period ? now : cycleStart + period;
+          period = toPeriod(Number(pot.value));
+        }
+        draw(now - cycleStart);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function draw(t) {
+      const on = [t < period * 3 / 5, t >= period / 10 && t < period * 3 / 5, t >= period / 5 && t < period * 3 / 5];
+      leds.forEach((led, i) => led.classList.toggle("is-on", on[i]));
+      playhead.style.left = `${Math.min(t / period, 1) * 100}%`;
+      periodNow.textContent = `${period} ms`;
+      elapsedOut.textContent = `${Math.floor(t)} ms`;
+    }
+
+    function showPot() {
+      potValue.textContent = pot.value;
+      periodNext.textContent = `${toPeriod(Number(pot.value))} ms`;
+    }
+
+    pot.addEventListener("input", showPot);
+    document.querySelectorAll("[data-pot]").forEach(button => button.addEventListener("click", () => {
+      pot.value = button.dataset.pot;
+      showPot();
+    }));
+
+    toggleButton.addEventListener("click", () => {
+      if (pausedAt === null) {
+        pausedAt = performance.now();
+        toggleButton.textContent = "재생";
+      } else {
+        cycleStart += performance.now() - pausedAt;
+        pausedAt = null;
+        toggleButton.textContent = "일시정지";
+      }
+    });
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      pausedAt = performance.now();
+      toggleButton.textContent = "재생";
+      draw(period / 5);
+    }
+    const hardwareVideo = document.querySelector("#videoFigure video");
+    document.querySelectorAll("[data-video-time]").forEach(button => button.addEventListener("click", () => {
+      hardwareVideo.currentTime = Number(button.dataset.videoTime);
+      hardwareVideo.play();
+    }));
+
+    fetch("assets/domino-pot.mp4", { method: "HEAD" }).then(response => {
+      if (!response.ok || !(response.headers.get("content-type") || "").startsWith("video/")) return;
+      document.querySelector("#videoFigure").hidden = false;
+      document.querySelector("#videoPending").hidden = true;
+    }).catch(() => {});
+    showPot();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

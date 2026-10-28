@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Arduino Uno와 LED 4개로 만든 12단계 점등 패턴. Fritzing 연결도, 330Ω 저항 배선, 아두이노 스케치와 실제 동작 영상.">
+  <title>LED 4개로 만드는 12단계 점등 패턴</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1f3a'/%3E%3Ccircle cx='32' cy='28' r='16' fill='%23ee2f3b'/%3E%3Ccircle cx='27' cy='23' r='5' fill='%23ff8a8f'/%3E%3Cpath d='M24 45v11m16-11v11' stroke='%23d7e2ef' stroke-width='4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fbfcfe;
+      --ink: #0b1f3a;
+      --muted: #53647a;
+      --line: #cad7e6;
+      --grid: rgba(46, 111, 178, 0.075);
+      --blue: #1265a8;
+      --blue-soft: #eaf4fd;
+      --red: #e82936;
+      --red-deep: #a90f1e;
+      --red-soft: #ffe8ea;
+      --shadow: 0 18px 50px rgba(11, 31, 58, 0.09);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
+      overflow-wrap: anywhere;
+    }
+
+    a {
+      color: var(--blue);
+      text-underline-offset: 0.2em;
+      text-decoration-thickness: 1px;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a,
+    select {
+      outline-offset: 4px;
+    }
+
+    :focus-visible {
+      outline: 3px solid #0b76c5;
+    }
+
+    .page {
+      width: min(1040px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      padding: 54px 0 26px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .back-link { display: inline-block; margin-bottom: 18px; font-size: 0.9rem; font-weight: 800; }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--blue);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 28px;
+      height: 3px;
+      background: var(--red);
+      content: "";
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin-bottom: 20px;
+      font-size: clamp(2.35rem, 7vw, 5rem);
+      line-height: 1.05;
+      letter-spacing: -0.055em;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    main {
+      padding: 48px 0 100px;
+    }
+
+    section {
+      margin-top: 76px;
+      scroll-margin-top: 20px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 26px;
+      font-size: clamp(1.7rem, 4vw, 2.55rem);
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .section-number {
+      flex: none;
+      color: var(--red);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+    }
+
+    h3 {
+      margin-bottom: 12px;
+      font-size: 1.14rem;
+      line-height: 1.4;
+    }
+
+    .goal-grid,
+    .wiring-grid,
+    .explain-grid,
+    .verification-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .note,
+    .panel {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .note p:last-child,
+    .panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    .note strong {
+      color: var(--red-deep);
+    }
+
+    .simulator {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .simulator-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 22px;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .simulator-kicker {
+      margin: 0;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .simulator-note {
+      margin: 0;
+      color: #c7d7e8;
+      font-size: 0.82rem;
+      text-align: right;
+    }
+
+    .stage {
+      padding: clamp(28px, 6vw, 56px) 22px 30px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(18, 101, 168, 0.16), transparent 55%),
+        #f7fbff;
+    }
+
+    .led-bank {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(54px, 104px));
+      justify-content: center;
+      gap: clamp(12px, 4vw, 30px);
+    }
+
+    .led-unit {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .led {
+      position: relative;
+      width: min(15vw, 82px);
+      min-width: 52px;
+      aspect-ratio: 1;
+      border: 4px solid #718096;
+      border-radius: 50% 50% 44% 44%;
+      background: #e8edf2;
+      box-shadow: inset -10px -12px 16px rgba(11, 31, 58, 0.15);
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .led::before {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 24%;
+      height: 20%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      content: "";
+    }
+
+    .led::after {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      width: 44%;
+      height: 18px;
+      border-right: 3px solid #78889b;
+      border-left: 3px solid #78889b;
+      content: "";
+      transform: translateX(-50%);
+    }
+
+    .led.is-on {
+      border-color: #c71120;
+      background: var(--red);
+      box-shadow:
+        inset -10px -12px 18px rgba(121, 0, 9, 0.32),
+        0 0 0 8px rgba(232, 41, 54, 0.1),
+        0 0 30px rgba(232, 41, 54, 0.62);
+    }
+
+    .led[data-led="0"].is-on {
+      border-color: #1679d7;
+      background: #40bfff;
+      box-shadow: inset -10px -12px 18px #1265a844, 0 0 30px #40bfffa0;
+    }
+
+    .led[data-led="2"].is-on {
+      border-color: #7294b5;
+      background: #fff;
+      box-shadow: inset -10px -12px 18px #cde5ff, 0 0 30px #b7d9ff;
+    }
+
+    .led[data-led="3"].is-on {
+      border-color: #14863c;
+      background: #57e77e;
+      box-shadow: inset -10px -12px 18px #14863c44, 0 0 30px #57e77ea0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .led { transition: none; }
+    }
+
+    .state-readout {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px 18px;
+      margin-top: 38px;
+      text-align: center;
+    }
+
+    .state-number {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .state-bits {
+      padding: 7px 13px;
+      border: 1px solid #aebed0;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--red-deep);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .control-button,
+    .speed-select {
+      min-height: 44px;
+      border: 1px solid #9eb0c5;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .control-button {
+      padding: 9px 16px;
+      cursor: pointer;
+    }
+
+    .control-button.primary {
+      border-color: var(--red-deep);
+      color: #fff;
+      background: var(--red-deep);
+    }
+
+    .control-button:hover,
+    .speed-select:hover {
+      border-color: var(--blue);
+    }
+
+    .speed-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .speed-select {
+      padding: 8px 34px 8px 11px;
+    }
+
+    .pattern-heading {
+      margin: 34px 0 15px;
+    }
+
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pattern-card {
+      min-width: 0;
+      padding: 13px 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .pattern-card:hover {
+      border-color: var(--blue);
+    }
+
+    .pattern-card[aria-current="step"] {
+      border-color: var(--red);
+      background: var(--red-soft);
+      box-shadow: inset 0 0 0 1px var(--red);
+    }
+
+    .pattern-index {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .mini-leds {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .mini-led {
+      width: 10px;
+      height: 10px;
+      border: 1px solid #8a9aac;
+      border-radius: 50%;
+      background: #dce4ec;
+    }
+
+    .mini-led.on {
+      border-color: var(--red-deep);
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(232, 41, 54, 0.55);
+    }
+
+    .pattern-bits {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    .diagram-wrap {
+      overflow-x: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      width: 100%;
+      min-width: 760px;
+      height: auto;
+    }
+
+    .parts-list,
+    .pin-list {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    .pin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    .pin-table th,
+    .pin-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .pin-table th {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .code-shell {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      background: #071629;
+      box-shadow: var(--shadow);
+    }
+
+    .code-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid #30465f;
+      color: #cfdeed;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .code-toolbar a { color: #9fd2ff; }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      padding: 24px;
+      color: #e8f2fb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      tab-size: 2;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .formula {
+      display: block;
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 15px;
+      border-left: 4px solid var(--red);
+      background: #fff;
+      color: var(--red-deep);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .verified {
+      border-top: 4px solid var(--blue);
+    }
+
+    .status-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+
+    .status-label::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .media-figure {
+      margin: 24px 0;
+    }
+
+    .media-figure img,
+    .media-figure video {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .media-figure img { padding: 16px; }
+    .media-figure video { aspect-ratio: 16 / 9; background: #0b1f3a; }
+
+    figcaption {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .asset-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      margin: 16px 0;
+      font-weight: 700;
+    }
+
+    details { margin-top: 24px; }
+    summary { cursor: pointer; font-weight: 800; margin-bottom: 16px; }
+    .video-chapters { margin-top: 18px; }
+    .video-chapters button { margin: 0 8px 8px 0; }
+
+    footer {
+      padding: 24px 0 48px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 28px, 1040px);
+      }
+
+      .site-header {
+        padding-top: 36px;
+      }
+
+      main {
+        padding-top: 36px;
+      }
+
+      section {
+        margin-top: 58px;
+      }
+
+      .goal-grid,
+      .wiring-grid,
+      .explain-grid,
+      .verification-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pattern-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .simulator-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .simulator-note {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 420px) {
+      body {
+        font-size: 16px;
+      }
+
+      h1 {
+        font-size: 2.28rem;
+      }
+
+      .led-bank {
+        gap: 9px;
+      }
+
+      .led {
+        min-width: 48px;
+      }
+
+      .controls {
+        justify-content: stretch;
+      }
+
+      .control-button {
+        flex: 1 1 30%;
+      }
+
+      .speed-wrap {
+        justify-content: space-between;
+        width: 100%;
+        margin: 4px 0 0;
+      }
+
+      .speed-select {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header page">
+    <a class="back-link" href="../">← 아두이노 실습 기록</a>
+    <p class="eyebrow">아두이노 실습 기록</p>
+    <h1>LED 4개로 만드는<br>12단계 점등 패턴</h1>
+    <p class="lead">LED 하나부터 세 개까지 켜지는 구간을 오른쪽으로 옮기며, 배열과 중첩 반복문으로 같은 규칙을 표현한 Arduino Uno 실습이다.</p>
+    <div class="meta" aria-label="게시물 정보">
+      <span>202601537 박창우</span>
+      <span>Arduino Uno · LED · 반복문</span>
+      <span>상태 간격 500 ms</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <article>
+      <section aria-labelledby="goal-title">
+        <h2 id="goal-title"><span class="section-number">01</span>실습 목표</h2>
+        <div class="goal-grid">
+          <div class="note">
+            <h3>하나의 규칙으로 12개 상태 만들기</h3>
+            <p>켜질 구간의 길이를 <strong>1개 → 2개 → 3개</strong>로 늘리고, 각 구간의 시작 위치를 왼쪽에서 오른쪽으로 네 번 이동한다. 3 × 4이므로 한 주기는 12단계다.</p>
+          </div>
+          <div class="note">
+            <h3>배열과 반복문의 역할 확인하기</h3>
+            <p>D2–D5 핀을 배열로 묶고, 현재 LED가 켜질 구간 안에 있는지 조건식으로 판단한다. 오른쪽 끝을 넘어간 LED는 자연스럽게 표시되지 않는다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="simulation-title">
+        <h2 id="simulation-title"><span class="section-number">02</span>브라우저 시뮬레이션과 패턴</h2>
+        <div class="simulator">
+          <div class="simulator-head">
+            <p class="simulator-kicker">브라우저 시뮬레이션</p>
+            <p class="simulator-note">실제 하드웨어 촬영 영상이 아닙니다.</p>
+          </div>
+          <div class="stage">
+            <div class="led-bank" aria-label="LED 출력 상태">
+              <div class="led-unit"><span class="led" data-led="0" aria-hidden="true"></span><span>D2 · 파랑</span></div>
+              <div class="led-unit"><span class="led" data-led="1" aria-hidden="true"></span><span>D3 · 빨강</span></div>
+              <div class="led-unit"><span class="led" data-led="2" aria-hidden="true"></span><span>D4 · 흰색</span></div>
+              <div class="led-unit"><span class="led" data-led="3" aria-hidden="true"></span><span>D5 · 초록</span></div>
+            </div>
+            <div class="state-readout" aria-live="polite" aria-atomic="true">
+              <span class="state-number" id="stateNumber">1단계 / 12단계</span>
+              <span class="state-bits" id="stateBits">1000</span>
+              <span class="state-number" id="playState">재생 중 · 500 ms</span>
+            </div>
+          </div>
+          <div class="controls" aria-label="시뮬레이션 조작">
+            <button class="control-button primary" id="toggleButton" type="button">일시정지</button>
+            <button class="control-button" id="nextButton" type="button">다음 단계</button>
+            <button class="control-button" id="resetButton" type="button">처음으로</button>
+            <label class="speed-wrap" for="speedSelect">재생 속도
+              <select class="speed-select" id="speedSelect">
+                <option value="1000">느리게 · 1,000 ms</option>
+                <option value="500" selected>기본 · 500 ms</option>
+                <option value="250">빠르게 · 250 ms</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <h3 class="pattern-heading">12단계 전체 상태</h3>
+        <div class="pattern-grid" id="patternGrid" aria-label="12단계 패턴 선택"></div>
+      </section>
+
+      <section aria-labelledby="wiring-title">
+        <h2 id="wiring-title"><span class="section-number">03</span>Fritzing 연결도와 배선</h2>
+        <p>왼쪽부터 파랑·빨강·흰색·초록 LED를 D2·D3·D4·D5에 연결했다. LED마다 <strong>330Ω 저항을 하나씩 직렬로 연결</strong>하고, 캐소드는 Arduino의 GND로 모았다.</p>
+        <figure class="media-figure">
+          <a href="assets/led-pattern-breadboard.svg" aria-label="Fritzing 연결도 원본 크게 보기">
+            <img src="assets/led-pattern-breadboard.svg" alt="Fritzing 브레드보드 연결도. D2에서 파랑 LED, D3에서 빨강 LED, D4에서 흰색 LED, D5에서 초록 LED로 각각 330옴 저항을 거쳐 연결하며 캐소드는 공통 GND로 연결한다." loading="lazy">
+          </a>
+          <figcaption>Fritzing으로 작성한 브레드보드 연결도. 선의 배치는 읽기 쉽게 정리했으며, 핀·LED 순서·저항값은 실습에 맞췄다.</figcaption>
+        </figure>
+        <div class="asset-links">
+          <a href="assets/led-pattern.fzz" download>Fritzing 원본 (.fzz)</a>
+          <a href="assets/led-pattern-breadboard.svg" download>연결도 다운로드 (.svg)</a>
+          <a href="assets/led-pattern-breadboard.png" download>연결도 이미지 (.png)</a>
+        </div>
+        <details>
+          <summary>회로 기호로 연결 원리 보기</summary>
+        <div class="diagram-wrap" tabindex="0" aria-label="회로도. 작은 화면에서는 가로로 스크롤할 수 있습니다.">
+          <svg viewBox="0 0 960 520" role="img" aria-labelledby="circuitTitle circuitDesc">
+            <title id="circuitTitle">Arduino Uno와 LED 네 개의 회로 원리도</title>
+            <desc id="circuitDesc">Arduino Uno의 D2, D3, D4, D5 출력이 각각 330옴 저항과 파랑, 빨강, 흰색, 초록 LED의 애노드, 캐소드를 지나 공통 접지로 연결된다.</desc>
+            <defs>
+              <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#1265a8"/>
+              </marker>
+            </defs>
+            <rect x="40" y="54" width="210" height="360" rx="22" fill="#eef6fc" stroke="#0b1f3a" stroke-width="3"/>
+            <text x="145" y="94" text-anchor="middle" fill="#0b1f3a" font-size="22" font-weight="800">ARDUINO UNO</text>
+            <text x="145" y="122" text-anchor="middle" fill="#53647a" font-size="15">DIGITAL OUTPUT</text>
+
+            <g fill="#0b1f3a" font-size="16" font-weight="800">
+              <text x="204" y="175">D2</text>
+              <text x="204" y="245">D3</text>
+              <text x="204" y="315">D4</text>
+              <text x="204" y="385">D5</text>
+            </g>
+            <g fill="#1265a8">
+              <circle cx="246" cy="170" r="6"/>
+              <circle cx="246" cy="240" r="6"/>
+              <circle cx="246" cy="310" r="6"/>
+              <circle cx="246" cy="380" r="6"/>
+            </g>
+
+            <g fill="none" stroke="#0b1f3a" stroke-width="3" stroke-linejoin="round">
+              <path d="M246 170 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H470"/>
+              <path d="M246 240 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H470"/>
+              <path d="M246 310 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H470"/>
+              <path d="M246 380 H320 l10 -12 16 24 16 -24 16 24 16 -24 16 12 H470"/>
+            </g>
+            <g fill="#53647a" font-size="14" font-weight="700" text-anchor="middle">
+              <text x="365" y="145">330 Ω</text>
+              <text x="365" y="215">330 Ω</text>
+              <text x="365" y="285">330 Ω</text>
+              <text x="365" y="355">330 Ω</text>
+            </g>
+
+            <g stroke="#0b1f3a" stroke-width="3" fill="none">
+              <path d="M470 170 H500"/><path d="M540 170 H800"/>
+              <path d="M470 240 H500"/><path d="M540 240 H800"/>
+              <path d="M470 310 H500"/><path d="M540 310 H800"/>
+              <path d="M470 380 H500"/><path d="M540 380 H800"/>
+            </g>
+            <g fill="#e82936" stroke="#a90f1e" stroke-width="2">
+              <path d="M500 148 L536 170 L500 192 Z" fill="#40bfff" stroke="#1679d7"/><path d="M500 218 L536 240 L500 262 Z"/>
+              <path d="M500 288 L536 310 L500 332 Z" fill="#fff" stroke="#7294b5"/><path d="M500 358 L536 380 L500 402 Z" fill="#57e77e" stroke="#14863c"/>
+            </g>
+            <g stroke="#0b1f3a" stroke-width="4">
+              <path d="M540 145 V195"/><path d="M540 215 V265"/><path d="M540 285 V335"/><path d="M540 355 V405"/>
+            </g>
+            <g stroke="#1265a8" stroke-width="2" marker-end="url(#arrowBlue)">
+              <path d="M514 145 l18 -22"/><path d="M529 151 l18 -22"/>
+              <path d="M514 215 l18 -22"/><path d="M529 221 l18 -22"/>
+              <path d="M514 285 l18 -22"/><path d="M529 291 l18 -22"/>
+              <path d="M514 355 l18 -22"/><path d="M529 361 l18 -22"/>
+            </g>
+
+            <text x="470" y="104" fill="#53647a" font-size="14" font-weight="700">A = 긴 다리 (+) · K = 짧은 다리 (−)</text>
+            <g fill="#a90f1e" font-size="14" font-weight="800">
+              <text x="576" y="195" fill="#1265a8">BLUE LED 1</text><text x="576" y="265">RED LED 2</text>
+              <text x="576" y="335" fill="#53647a">WHITE LED 3</text><text x="576" y="405" fill="#14863c">GREEN LED 4</text>
+            </g>
+
+            <path d="M800 170 V430 H145 V414" fill="none" stroke="#0b1f3a" stroke-width="3"/>
+            <circle cx="800" cy="240" r="5" fill="#0b1f3a"/>
+            <circle cx="800" cy="310" r="5" fill="#0b1f3a"/>
+            <circle cx="800" cy="380" r="5" fill="#0b1f3a"/>
+            <g stroke="#0b1f3a" stroke-width="3">
+              <path d="M800 430 v18"/><path d="M780 448 h40"/><path d="M787 457 h26"/><path d="M794 466 h12"/>
+            </g>
+            <text x="826" y="443" fill="#0b1f3a" font-size="16" font-weight="800">공통 GND</text>
+            <text x="145" y="405" text-anchor="middle" fill="#0b1f3a" font-size="16" font-weight="800">GND</text>
+          </svg>
+        </div>
+        </details>
+
+        <div class="wiring-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>핀 연결</h3>
+            <table class="pin-table">
+              <thead><tr><th>출력 핀</th><th>연결</th></tr></thead>
+              <tbody>
+                <tr><td>D2</td><td>330 Ω → 파랑 LED 애노드(+)</td></tr>
+                <tr><td>D3</td><td>330 Ω → 빨강 LED 애노드(+)</td></tr>
+                <tr><td>D4</td><td>330 Ω → 흰색 LED 애노드(+)</td></tr>
+                <tr><td>D5</td><td>330 Ω → 초록 LED 애노드(+)</td></tr>
+              </tbody>
+            </table>
+            <p>각 LED의 캐소드(−)는 공통 GND에 연결한다.</p>
+          </div>
+          <div class="panel">
+            <h3>준비물</h3>
+            <ul class="parts-list">
+              <li>Arduino Uno 1개</li>
+              <li>파랑·빨강·흰색·초록 LED 각 1개</li>
+              <li>330 Ω 저항 4개</li>
+              <li>브레드보드 1개</li>
+              <li>점퍼선</li>
+            </ul>
+            <p style="margin-top: 14px;"><a href="https://docs.arduino.cc/built-in-examples/basics/Blink/">Arduino 공식 Blink 예제에서 기본 LED 배선 확인하기</a></p>
+          </div>
+        </div>
+        <p>사용한 저항의 색띠는 주황–주황–검정–검정–갈색이다. 5색띠 규칙으로 읽으면 <code>330 × 1 = 330Ω</code>, 허용 오차는 ±1%다. 이는 색띠의 표기값이며 멀티미터 측정값은 아니다. <a href="https://www.vishay.com/docs/20143/colorcod.pdf">저항 제조사 색띠표</a></p>
+      </section>
+
+      <section aria-labelledby="sketch-title">
+        <h2 id="sketch-title"><span class="section-number">04</span>스케치</h2>
+        <p>12개 상태를 일일이 나열하는 대신, 핀 배열과 세 반복문으로 같은 규칙을 표현했다. 켜야 할 LED와 꺼야 할 LED를 매 단계 함께 갱신하므로 이전 상태가 남지 않는다.</p>
+        <div class="code-shell">
+          <div class="code-toolbar">
+            <span>led_pattern.ino</span>
+            <a href="led_pattern.ino" download>스케치 다운로드</a>
+          </div>
+          <pre><code id="sourceCode">const int ledPins[] = {2, 3, 4, 5};
+const int ledCount = 4;
+
+void setup() {
+  for (int led = 0; led &lt; ledCount; led++) {
+    pinMode(ledPins[led], OUTPUT);
+  }
+}
+
+void loop() {
+  for (int count = 1; count &lt;= 3; count++) {
+    for (int start = 0; start &lt; ledCount; start++) {
+      for (int led = 0; led &lt; ledCount; led++) {
+        digitalWrite(ledPins[led], led &gt;= start &amp;&amp; led &lt; start + count ? HIGH : LOW);
+      }
+      delay(500);
+    }
+  }
+}
+</code></pre>
+        </div>
+        <p>소스에는 <code>digitalWrite()</code>를 한 번만 작성했다. 실행 중에는 12단계 × 4개 LED로 한 주기에 48번 호출된다. 중복 코드를 줄이면서 각 단계의 출력을 명확하게 지정하는 방식이다.</p>
+        <p>한 주기의 대기 시간 합은 <code>12 × 500ms = 6초</code>다. 실제 주기에는 핀 출력과 반복문 실행 시간이 조금 더해진다.</p>
+      </section>
+
+      <section aria-labelledby="explanation-title">
+        <h2 id="explanation-title"><span class="section-number">05</span>동작 원리</h2>
+        <div class="explain-grid">
+          <div class="panel">
+            <h3>1. <code>count</code>가 켜질 구간의 길이를 정한다</h3>
+            <p><code>count</code>는 1부터 3까지 변한다. 따라서 한 번에 켜지는 구간의 길이는 1개, 2개, 3개 순서로 늘어난다.</p>
+          </div>
+          <div class="panel">
+            <h3>2. <code>start</code>가 시작점을 옮긴다</h3>
+            <p><code>start</code>는 0부터 3까지 이동한다. 배열의 0번은 D2, 1번은 D3, 2번은 D4, 3번은 D5다.</p>
+          </div>
+          <div class="panel">
+            <h3>3. 현재 LED가 구간 안인지 검사한다</h3>
+            <span class="formula">led &gt;= start &amp;&amp; led &lt; start + count</span>
+            <p>두 조건이 모두 참인 LED만 <code>HIGH</code>가 된다. 나머지는 같은 반복에서 <code>LOW</code>로 갱신된다.</p>
+          </div>
+          <div class="panel">
+            <h3>4. 오른쪽을 벗어난 부분은 잘린다</h3>
+            <p>예를 들어 <code>count = 3</code>, <code>start = 3</code>이면 유효한 배열 위치는 3 하나뿐이다. 그래서 마지막 상태는 <code>0001</code>이 된다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="verification-title">
+        <h2 id="verification-title"><span class="section-number">06</span>검증과 실제 영상</h2>
+        <div class="verification-grid">
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>컴파일과 상태 순서</h3>
+            <p>Arduino Uno 대상으로 컴파일한 결과 프로그램 저장 공간은 1,080바이트, 전역 변수는 17바이트였다. 별도 C++ 실행 검사에서도 12개 상태의 순서와 각 <code>delay(500)</code> 인자를 확인했다.</p>
+          </div>
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">촬영 영상으로 확인</span>
+            <h3>실물 보드 동작</h3>
+            <p>아래 영상에서 12단계 순서가 두 번 완전히 반복되고 세 번째 주기가 시작되는 것을 확인했다. 각 상태는 약 0.5초 유지되며, 오른쪽 끝에서는 켜지는 LED 수가 줄어드는 동작도 과제 패턴과 일치한다.</p>
+          </div>
+        </div>
+        <figure class="media-figure">
+          <video id="hardwareVideo" controls playsinline preload="metadata" poster="assets/video-poster.jpg" aria-label="Arduino Uno LED 4개 실제 동작 영상">
+            <source src="assets/arduino-led-sequence.mp4" type="video/mp4">
+            <track kind="captions" src="assets/led-pattern-ko.vtt" srclang="ko" label="한국어 · 단계 설명" default>
+            <p><a href="assets/arduino-led-sequence.mp4">동작 영상 다운로드</a></p>
+          </video>
+          <figcaption>실제 제작한 회로의 동작 영상 · 약 14초 · 1920 × 1080, 30fps. 원본의 시간 순서와 재생 속도를 유지했다. 자막에서 현재 단계와 점등 상태를 함께 볼 수 있다.</figcaption>
+        </figure>
+        <div class="video-chapters" aria-label="동작 영상 구간 이동">
+          <button class="control-button" type="button" data-video-time="0.5">1단계 · 파랑 1개</button>
+          <button class="control-button" type="button" data-video-time="2.5">5단계 · 파랑·빨강</button>
+          <button class="control-button" type="button" data-video-time="4.5">9단계 · 파랑·빨강·흰색</button>
+          <button class="control-button" type="button" data-video-time="6.5">두 번째 반복</button>
+        </div>
+        <p>영상의 0.5초부터 6.0초까지 0.5초 간격으로 보면 위의 12개 상태가 차례대로 나타난다. 6.5초부터 같은 순서를 다시 확인할 수 있다.</p>
+        <div class="asset-links"><a href="assets/arduino-led-sequence.mp4" download>동작 영상 다운로드 (.mp4, 약 11MB)</a></div>
+      </section>
+    </article>
+  </main>
+
+  <footer>
+    <div class="page">Arduino LED 패턴 실습 기록 · 브라우저 시뮬레이션은 코드의 출력 순서를 시각화한 것입니다.</div>
+  </footer>
+
+  <script>
+    const hardwareVideo = document.querySelector("#hardwareVideo");
+    document.querySelectorAll("[data-video-time]").forEach(button => {
+      button.addEventListener("click", () => {
+        hardwareVideo.currentTime = Number(button.dataset.videoTime);
+        hardwareVideo.play();
+      });
+    });
+    const patterns = [
+      "1000", "0100", "0010", "0001",
+      "1100", "0110", "0011", "0001",
+      "1110", "0111", "0011", "0001"
+    ];
+    const ledElements = [...document.querySelectorAll("[data-led]")];
+    const stateNumber = document.querySelector("#stateNumber");
+    const stateBits = document.querySelector("#stateBits");
+    const playState = document.querySelector("#playState");
+    const toggleButton = document.querySelector("#toggleButton");
+    const nextButton = document.querySelector("#nextButton");
+    const resetButton = document.querySelector("#resetButton");
+    const speedSelect = document.querySelector("#speedSelect");
+    const patternGrid = document.querySelector("#patternGrid");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let currentIndex = 0;
+    let intervalId = null;
+    let isPlaying = !prefersReducedMotion;
+
+    patterns.forEach((pattern, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pattern-card";
+      button.dataset.index = String(index);
+      button.setAttribute("aria-label", `${index + 1}단계, ${pattern}`);
+      button.innerHTML = `<span class="pattern-index">${String(index + 1).padStart(2, "0")}</span><span class="mini-leds" aria-hidden="true">${[...pattern].map((bit) => `<span class="mini-led ${bit === "1" ? "on" : ""}"></span>`).join("")}</span><span class="pattern-bits">${pattern}</span>`;
+      button.addEventListener("click", () => {
+        pause();
+        render(index);
+      });
+      patternGrid.append(button);
+    });
+
+    function render(index) {
+      currentIndex = index;
+      const pattern = patterns[currentIndex];
+      ledElements.forEach((led, ledIndex) => led.classList.toggle("is-on", pattern[ledIndex] === "1"));
+      document.querySelectorAll(".pattern-card").forEach((card, cardIndex) => {
+        if (cardIndex === currentIndex) {
+          card.setAttribute("aria-current", "step");
+        } else {
+          card.removeAttribute("aria-current");
+        }
+      });
+      stateNumber.textContent = `${currentIndex + 1}단계 / ${patterns.length}단계`;
+      stateBits.textContent = pattern;
+      updatePlayState();
+    }
+
+    function updatePlayState() {
+      const speed = Number(speedSelect.value);
+      playState.textContent = `${isPlaying ? "재생 중" : "정지됨"} · ${speed.toLocaleString("ko-KR")} ms`;
+      toggleButton.textContent = isPlaying ? "일시정지" : "재생";
+      toggleButton.setAttribute("aria-pressed", String(isPlaying));
+    }
+
+    function start() {
+      window.clearInterval(intervalId);
+      isPlaying = true;
+      intervalId = window.setInterval(() => render((currentIndex + 1) % patterns.length), Number(speedSelect.value));
+      updatePlayState();
+    }
+
+    function pause() {
+      window.clearInterval(intervalId);
+      intervalId = null;
+      isPlaying = false;
+      updatePlayState();
+    }
+
+    toggleButton.addEventListener("click", () => {
+      if (isPlaying) {
+        pause();
+      } else {
+        start();
+      }
+    });
+
+    nextButton.addEventListener("click", () => {
+      pause();
+      render((currentIndex + 1) % patterns.length);
+    });
+
+    resetButton.addEventListener("click", () => {
+      pause();
+      render(0);
+    });
+
+    speedSelect.addEventListener("change", () => {
+      if (isPlaying) start();
+      else updatePlayState();
+    });
+
+    render(0);
+    if (isPlaying) start();
+  </script>
+</body>
+</html>

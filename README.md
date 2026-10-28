@@ -1,8 +1,8 @@
-# LCD 첫 칸에서 쉬지 않고 달리는 사람
+# 아두이노 실습 기록
 
-16x2 I2C LCD의 첫째 줄 첫 칸에 Custom Character로 달리는 사람을 그려 Arduino가 동작 중임을 보여 주는 실습 기록이다.
+INU 창설 과목 Arduino 실습 글 모음이다. 사이트: https://arclightsforinu.github.io/
 
-- 글: https://arclightsforinu.github.io/
-- 스케치: `lcd_runner/lcd_runner.ino`
-- 연결도: `assets/lcd-runner-breadboard-fz.svg`
-- PC 검증 모델: `tools/lcdsim/`
+- [가변저항으로 Domino 3 LEDs 주기 조정하기](https://arclightsforinu.github.io/domino-pot/)
+- [LCD 첫 칸의 달리는 사람](https://arclightsforinu.github.io/lcd-runner/)
+- [LED 4개로 만드는 12단계 점등 패턴](https://arclightsforinu.github.io/led-pattern/)
+- [p5 슬라이더로 LED 밝기 조절](https://arclightsforinu.github.io/p5-led-slider/)
