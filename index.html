@@ -1077,15 +1077,24 @@
         <h2 id="wiring-title"><span class="section-number">05</span>회로와 연결도</h2>
         <p>LCD 뒷면에 붙은 I2C 모듈이 LCD의 16핀 연결을 두 가닥(SDA·SCL) 통신으로 바꿔 준다. 그래서 전원 두 가닥을 더해 <strong>선 4개</strong>면 된다. Arduino Uno에서 I2C 핀은 <strong>A4(SDA)와 A5(SCL)</strong>이다.</p>
         <figure class="media-figure">
-          <a href="assets/lcd-runner-breadboard.svg" aria-label="연결도 크게 보기">
-            <img src="assets/lcd-runner-breadboard.svg" alt="연결도. LCD에 붙은 I2C 모듈의 GND는 검은 선으로 Arduino GND, VCC는 빨간 선으로 5V, SDA는 파란 선으로 A4, SCL은 노란 선으로 A5에 연결된다. LCD 첫 칸에 달리는 사람이 보인다." loading="lazy">
+          <a href="assets/lcd-runner-breadboard-fz.svg" aria-label="연결도 크게 보기">
+            <img src="assets/lcd-runner-breadboard-fz.svg" alt="연결도. LCD 왼쪽 위의 I2C 핀 네 개 중 GND는 검은 선으로 Arduino GND, VCC는 빨간 선으로 5V, SDA는 파란 선으로 A4, SCL은 노란 선으로 A5에 연결된다. LCD 첫 칸에 달리는 사람이 보인다." loading="lazy">
           </a>
-          <figcaption>Fritzing 부품 그림으로 구성한 연결도. Arduino Uno는 첫 실습의 Fritzing 내보내기 그림('Arduino Uno (Rev3)')을, LCD는 Fritzing 기본 부품 'LCD screen'(lcd-GDM1602K) 그림을 썼다(fritzing-parts, CC BY-SA 3.0). Fritzing 기본 부품에는 I2C 모듈이 붙은 LCD가 없어서, I2C 모듈(PCF8574)과 선은 같은 모양으로 직접 그렸다. 실제 모듈은 LCD 뒷면에 붙어 있고 핀 순서가 제품마다 다를 수 있으니, 모듈에 인쇄된 이름을 보고 연결한다.</figcaption>
+          <figcaption>Fritzing 부품 그림으로 구성한 연결도. LCD는 수업 Fritzing 파일(PotButtonLCD.fzz)에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley) 그림이고, Arduino Uno는 Fritzing 기본 부품 'Arduino Uno (Rev3)' 그림이다(fritzing-parts, CC BY-SA 3.0). 선과 이름표는 Fritzing 선 모양에 맞춰 그려 넣었다. LCD 첫 칸의 사람은 동작 ① 착지 장면이다.</figcaption>
         </figure>
         <div class="asset-links">
-          <a href="assets/lcd-runner-breadboard.svg" download>연결도 다운로드 (.svg)</a>
-          <a href="assets/lcd-runner-breadboard.png" download>연결도 이미지 (.png)</a>
+          <a href="assets/lcd-runner-breadboard-fz.svg" download>연결도 다운로드 (.svg)</a>
+          <a href="assets/lcd-runner-breadboard-fz.png" download>연결도 이미지 (.png)</a>
         </div>
+        <details>
+          <summary>I2C 모듈 모양까지 그린 연결도 보기</summary>
+          <figure class="media-figure">
+            <a href="assets/lcd-runner-breadboard.svg" aria-label="I2C 모듈을 그린 연결도 크게 보기">
+              <img src="assets/lcd-runner-breadboard.svg" alt="I2C 모듈(PCF8574)을 그린 연결도. 모듈의 GND, VCC, SDA, SCL 핀이 각각 Arduino GND, 5V, A4, A5에 연결된다." loading="lazy">
+            </a>
+            <figcaption>실제 제품처럼 I2C 모듈(PCF8574, 명암 가변저항, 4핀)을 보이게 그린 그림. LCD는 Fritzing 기본 부품 'LCD screen'(lcd-GDM1602K) 그림이고, I2C 모듈과 선은 직접 그렸다. 실제 모듈은 LCD 뒷면에 붙어 있고 핀 순서가 제품마다 다를 수 있으니, 모듈에 인쇄된 이름을 보고 연결한다.</figcaption>
+          </figure>
+        </details>
 
         <div class="wiring-grid" style="margin-top: 18px;">
           <div class="panel">

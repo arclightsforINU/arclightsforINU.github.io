@@ -4,5 +4,5 @@
 
 - 글: https://arclightsforinu.github.io/
 - 스케치: `lcd_runner/lcd_runner.ino`
-- 연결도: `assets/lcd-runner-breadboard.svg`
+- 연결도: `assets/lcd-runner-breadboard-fz.svg`
 - PC 검증 모델: `tools/lcdsim/`

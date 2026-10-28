@@ -1,6 +1,7 @@
 # Builds the lcd-runner breadboard SVG/PNG: Uno from the earlier Fritzing export, 16x2 LCD from fritzing-parts, hand-drawn I2C backpack and four wires.
 import subprocess
 import struct
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -14,18 +15,29 @@ BASE = LAB / "led-pattern/assets/led-pattern-breadboard.svg"
 LCD_SVG = ROOT / "_build/fritzing-parts/lcd-GDM1602K.svg"
 OUT_DIR = LAB / "lcd-runner/assets"
 SCRATCH = ROOT / "_build/lcd-runner"
-OUT_SVG = OUT_DIR / "lcd-runner-breadboard.svg"
-OUT_PNG = OUT_DIR / "lcd-runner-breadboard.png"
+FZ = "--fz" in sys.argv
+FZ_LCD_SVG = ROOT / "_build/p5-slider/fzz/svg.breadboard.LCD1602-I2C_breadboard.svg"
+SUFFIX = "-fz" if FZ else ""
+OUT_SVG = OUT_DIR / f"lcd-runner-breadboard{SUFFIX}.svg"
+OUT_PNG = OUT_DIR / f"lcd-runner-breadboard{SUFFIX}.png"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PNG_WIDTH = 2000
 
 S = 1000 / 72
 UNO_PIN_X = 100
 UNO_Y = {"5V": 2256.66, "GND": 2356.66, "A4": 3156.66, "A5": 3256.66}
-LX, LY = -4010, 2000
+FZ_S = 3.25961 * 1000 / 329931
+FZ_PIN_X, FZ_PIN_Y = 1012 * FZ_S, [20244 * FZ_S, 30365 * FZ_S, 40487 * FZ_S, 50609 * FZ_S]
+FZ_CELL = (50201 * FZ_S, 48014 * FZ_S, (64297 - 50201) * FZ_S, (71241 - 48014) * FZ_S)
+FZ_W, FZ_H = 3259.61, 1417.32
+LX, LY = (-4160, 1950) if FZ else (-4010, 2000)
+CELL = FZ_CELL if FZ else (27.79 * S, 34.154 * S, 10.027 * S, 16.522 * S)
 HEADER_X0, HEADER_Y = LX + 1250, LY - 300
 LANES = [LY - 950, LY - 820, LY - 690, LY - 560]
 DESC_X = [-360, -480, -600, -720]
+FZ_LEG = [LX - 130, LX - 250, LX - 250, LX - 130]
+FZ_LANE = [LY - 110, LY - 240, LY + FZ_H + 240, LY + FZ_H + 110]
+FZ_DESC = [-500, -380, -640, -760]
 FS = 84
 
 WIRES = [
@@ -80,6 +92,13 @@ def lcd_group():
     return g
 
 
+def fz_lcd_group():
+    body = ET.parse(FZ_LCD_SVG).getroot().find(Q("g"))
+    g = el("g", {"transform": f"translate({LX},{LY}) scale({FZ_S:.8f})", "fill-rule": "evenodd", "clip-rule": "evenodd"})
+    g.append(body)
+    return g
+
+
 def backpack():
     g = el("g")
     x0, x1, y0, y1 = LX + 130, LX + 1900, LY - 420, LY + 130
@@ -117,8 +136,11 @@ def backpack():
 def build():
     parts = el("g")
     parts.append(uno_group())
-    parts.append(lcd_group())
-    parts.append(backpack())
+    if FZ:
+        parts.append(fz_lcd_group())
+    else:
+        parts.append(lcd_group())
+        parts.append(backpack())
 
     wires = el("g")
     labels = el("g")
@@ -127,33 +149,44 @@ def build():
         ty = UNO_Y[uno]
         pts = [(hx, HEADER_Y), (hx, LANES[i]), (DESC_X[i], LANES[i]),
                (DESC_X[i], ty), (UNO_PIN_X, ty)]
+        if FZ:
+            py = LY + FZ_PIN_Y[i]
+            pts = [(LX + FZ_PIN_X + 35, py), (FZ_LEG[i], py), (FZ_LEG[i], FZ_LANE[i]), (FZ_DESC[i], FZ_LANE[i]),
+                   (FZ_DESC[i], ty), (UNO_PIN_X, ty)]
         d = rounded(pts, 80)
         g = el("g", parent=wires)
         for color, width in ((outer, "44.4444"), (inner, "22.2222")):
             el("path", {"stroke-linecap": "round", "stroke-linejoin": "round", "fill": "none", "stroke-width": width,
                         "stroke": color, "d": d}, g)
-        pill(labels, hx + 210 + (35 if hdr in ("GND", "VCC") else 0), LANES[i], hdr)
-        pill(labels, -190 - (80 if uno in ("A4", "A5") else 0), ty, UNO_LABEL[uno])
+        if FZ:
+            pill(labels, FZ_LEG[i] + 330, FZ_LANE[i], hdr)
+            pill(labels, -190 if uno in ("5V", "GND") else -300, ty, UNO_LABEL[uno])
+        else:
+            pill(labels, hx + 210 + (35 if hdr in ("GND", "VCC") else 0), LANES[i], hdr)
+            pill(labels, -190 - (80 if uno in ("A4", "A5") else 0), ty, UNO_LABEL[uno])
     return parts, wires, labels
 
 
 def main():
     parts, wires, labels = build()
-    minx, miny, maxx, maxy = -4110, 440, 2300, 3720
+    minx, miny, maxx, maxy = (-4540, 440, 2300, 3720) if FZ else (-4110, 440, 2300, 3720)
     ox, oy = -minx, -miny
     w, h = maxx - minx, maxy - miny
     svg = ET.Element(Q("svg"), {"version": "1.2", "baseProfile": "tiny", "width": f"{w / 1000}in", "height": f"{h / 1000}in",
                                 "viewBox": f"0 0 {w} {h}"})
     el("title", parent=svg, text="Arduino Uno and I2C 16x2 LCD wiring")
-    el("desc", parent=svg, text=("Arduino Uno (Rev3) and 16x2 LCD (lcd-GDM1602K) graphics are from Fritzing "
-                                 "(fritzing-parts), CC BY-SA 3.0. I2C backpack and wires drawn separately."))
+    desc = ("Arduino Uno (Rev3) graphic is from Fritzing (fritzing-parts), CC BY-SA 3.0. LCD1602-I2C graphic is from "
+            "the class Fritzing file (part by Stephen Lilley). Wires drawn separately.") if FZ else (
+        "Arduino Uno (Rev3) and 16x2 LCD (lcd-GDM1602K) graphics are from Fritzing "
+        "(fritzing-parts), CC BY-SA 3.0. I2C backpack and wires drawn separately.")
+    el("desc", parent=svg, text=desc)
     main_g = el("g", {"transform": f"translate({ox},{oy})"}, svg)
     el("rect", {"x": minx, "y": miny, "width": w, "height": h, "fill": "#ffffff"}, main_g)
     for g in (parts, wires, labels):
         main_g.append(g)
-    el("rect", {"id": "lcd-first-cell", "x": f"{LX + 27.79 * S + ox:.2f}", "y": f"{LY + 34.154 * S + oy:.2f}",
-                "width": f"{10.027 * S:.2f}", "height": f"{16.522 * S:.2f}", "fill": "none", "stroke": "none"}, svg)
-    cx, cy, pw, ph_ = LX + 27.79 * S + ox, LY + 34.154 * S + oy, 10.027 * S / 5, 16.522 * S / 8
+    el("rect", {"id": "lcd-first-cell", "x": f"{LX + CELL[0] + ox:.2f}", "y": f"{LY + CELL[1] + oy:.2f}",
+                "width": f"{CELL[2]:.2f}", "height": f"{CELL[3]:.2f}", "fill": "none", "stroke": "none"}, svg)
+    cx, cy, pw, ph_ = LX + CELL[0] + ox, LY + CELL[1] + oy, CELL[2] / 5, CELL[3] / 8
     runner = el("g", {"id": "lcd-runner-pose", "fill": "#1d2b22", "fill-opacity": "0.88"}, svg)
     for r, row in enumerate([0b00011, 0b00011, 0b00100, 0b01110, 0b10101, 0b00110, 0b01001, 0b10000]):
         for c in range(5):
@@ -174,7 +207,7 @@ def main():
     with open(OUT_PNG, "rb") as f:
         head = f.read(24)
     print(OUT_SVG, OUT_PNG, struct.unpack(">II", head[16:24]))
-    print("first cell (svg units):", LX + 27.79 * S + ox, LY + 34.154 * S + oy, 10.027 * S, 16.522 * S)
+    print("first cell (svg units):", LX + CELL[0] + ox, LY + CELL[1] + oy, CELL[2], CELL[3])
     print("scale px/unit:", PNG_WIDTH / w)
 
 
