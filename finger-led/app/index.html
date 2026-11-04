@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>손가락 LED 조절기</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1f3a'/%3E%3Ccircle cx='22' cy='40' r='7' fill='%23f59e0b'/%3E%3Ccircle cx='42' cy='22' r='7' fill='%23f59e0b'/%3E%3Cpath d='M22 40 42 22' stroke='%23f59e0b' stroke-width='4'/%3E%3C/svg%3E">
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0b1220; color: #e2e8f0; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    #stage canvas { display: block; width: 100% !important; height: auto !important; border-radius: 12px; background: #000; }
+    .panel { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #111a2e; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #slider-slot { flex: 1; min-width: 200px; }
+    #level { width: 100%; accent-color: #f59e0b; }
+    #level-out { font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; font-weight: 700; }
+    button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 0; background: #2563eb; color: #fff; cursor: pointer; }
+    #link-state, #duty-out, #hint { color: #94a3b8; font-size: 14px; }
+    #duty-out { font-variant-numeric: tabular-nums; }
+    a { color: #93c5fd; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/p5@2.3.4/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@1.4.0/dist/ml5.min.js"></script>
+</head>
+<body>
+  <main>
+    <h1>손가락 간격으로 LED 밝기 조절</h1>
+    <div id="stage"></div>
+    <div class="panel">
+      <div class="row">
+        <label for="level">LED 밝기</label>
+        <div id="slider-slot"></div>
+        <span id="level-out">0 / 255</span>
+      </div>
+      <p id="hint">손 인식 모델을 불러오는 중입니다...</p>
+    </div>
+    <div class="panel row">
+      <button id="connect" type="button">Arduino 연결</button>
+      <span id="link-state">연결 안 됨</span>
+      <span id="duty-out"></span>
+    </div>
+    <p><a href="../">← 설명 글로 돌아가기</a></p>
+  </main>
+  <script src="pinch.js"></script>
+  <script src="serial-link.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>

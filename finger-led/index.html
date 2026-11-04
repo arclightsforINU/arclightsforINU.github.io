@@ -1,0 +1,1628 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="웹캠으로 엄지와 검지 사이 간격을 재서 p5 슬라이더를 움직이고, 그 값을 Web Serial로 Arduino Uno에 보내 D9 LED 밝기를 조절하는 실습.">
+  <title>손가락 간격으로 LED 밝기 조절</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1f3a'/%3E%3Ccircle cx='22' cy='40' r='7' fill='%23f59e0b'/%3E%3Ccircle cx='42' cy='22' r='7' fill='%23f59e0b'/%3E%3Cpath d='M22 40 42 22' stroke='%23f59e0b' stroke-width='4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fbfcfe;
+      --ink: #0b1f3a;
+      --muted: #53647a;
+      --line: #cad7e6;
+      --grid: rgba(46, 111, 178, 0.075);
+      --blue: #1265a8;
+      --blue-soft: #eaf4fd;
+      --red: #e82936;
+      --red-deep: #a90f1e;
+      --red-soft: #ffe8ea;
+      --shadow: 0 18px 50px rgba(11, 31, 58, 0.09);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
+      overflow-wrap: anywhere;
+    }
+
+    a {
+      color: var(--blue);
+      text-underline-offset: 0.2em;
+      text-decoration-thickness: 1px;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a,
+    select {
+      outline-offset: 4px;
+    }
+
+    :focus-visible {
+      outline: 3px solid #0b76c5;
+    }
+
+    .page {
+      width: min(1040px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      padding: 54px 0 26px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--blue);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 28px;
+      height: 3px;
+      background: var(--red);
+      content: "";
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin-bottom: 20px;
+      font-size: clamp(2.35rem, 7vw, 5rem);
+      line-height: 1.05;
+      letter-spacing: -0.055em;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    main {
+      padding: 48px 0 100px;
+    }
+
+    section {
+      margin-top: 76px;
+      scroll-margin-top: 20px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 26px;
+      font-size: clamp(1.7rem, 4vw, 2.55rem);
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .section-number {
+      flex: none;
+      color: var(--red);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+    }
+
+    h3 {
+      margin-bottom: 12px;
+      font-size: 1.14rem;
+      line-height: 1.4;
+    }
+
+    .goal-grid,
+    .wiring-grid,
+    .explain-grid,
+    .verification-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .note,
+    .panel {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .note p:last-child,
+    .panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    .note strong {
+      color: var(--red-deep);
+    }
+
+    .simulator {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .simulator-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 22px;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .simulator-kicker {
+      margin: 0;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .simulator-note {
+      margin: 0;
+      color: #c7d7e8;
+      font-size: 0.82rem;
+      text-align: right;
+    }
+
+    .stage {
+      padding: clamp(28px, 6vw, 56px) 22px 30px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(18, 101, 168, 0.16), transparent 55%),
+        #f7fbff;
+    }
+
+    .led-bank {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(54px, 104px));
+      justify-content: center;
+      gap: clamp(12px, 4vw, 30px);
+    }
+
+    .led-unit {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .led {
+      position: relative;
+      width: min(15vw, 82px);
+      min-width: 52px;
+      aspect-ratio: 1;
+      border: 4px solid #718096;
+      border-radius: 50% 50% 44% 44%;
+      background: #e8edf2;
+      box-shadow: inset -10px -12px 16px rgba(11, 31, 58, 0.15);
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .led::before {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 24%;
+      height: 20%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      content: "";
+    }
+
+    .led::after {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      width: 44%;
+      height: 18px;
+      border-right: 3px solid #78889b;
+      border-left: 3px solid #78889b;
+      content: "";
+      transform: translateX(-50%);
+    }
+
+    .led.is-on {
+      border-color: #c71120;
+      background: var(--red);
+      box-shadow:
+        inset -10px -12px 18px rgba(121, 0, 9, 0.32),
+        0 0 0 8px rgba(232, 41, 54, 0.1),
+        0 0 30px rgba(232, 41, 54, 0.62);
+    }
+
+    .led[data-led="0"].is-on {
+      border-color: #1679d7;
+      background: #40bfff;
+      box-shadow: inset -10px -12px 18px #1265a844, 0 0 30px #40bfffa0;
+    }
+
+    .led[data-led="2"].is-on {
+      border-color: #7294b5;
+      background: #fff;
+      box-shadow: inset -10px -12px 18px #cde5ff, 0 0 30px #b7d9ff;
+    }
+
+    .led[data-led="3"].is-on {
+      border-color: #14863c;
+      background: #57e77e;
+      box-shadow: inset -10px -12px 18px #14863c44, 0 0 30px #57e77ea0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .led { transition: none; }
+    }
+
+    .state-readout {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px 18px;
+      margin-top: 38px;
+      text-align: center;
+    }
+
+    .state-number {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .state-bits {
+      padding: 7px 13px;
+      border: 1px solid #aebed0;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--red-deep);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .control-button,
+    .speed-select {
+      min-height: 44px;
+      border: 1px solid #9eb0c5;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .control-button {
+      padding: 9px 16px;
+      cursor: pointer;
+    }
+
+    .control-button.primary {
+      border-color: var(--red-deep);
+      color: #fff;
+      background: var(--red-deep);
+    }
+
+    .control-button:hover,
+    .speed-select:hover {
+      border-color: var(--blue);
+    }
+
+    .speed-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .speed-select {
+      padding: 8px 34px 8px 11px;
+    }
+
+    .pattern-heading {
+      margin: 34px 0 15px;
+    }
+
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pattern-card {
+      min-width: 0;
+      padding: 13px 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .pattern-card:hover {
+      border-color: var(--blue);
+    }
+
+    .pattern-card[aria-current="step"] {
+      border-color: var(--red);
+      background: var(--red-soft);
+      box-shadow: inset 0 0 0 1px var(--red);
+    }
+
+    .pattern-index {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .mini-leds {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .mini-led {
+      width: 10px;
+      height: 10px;
+      border: 1px solid #8a9aac;
+      border-radius: 50%;
+      background: #dce4ec;
+    }
+
+    .mini-led.on {
+      border-color: var(--red-deep);
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(232, 41, 54, 0.55);
+    }
+
+    .pattern-bits {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    .diagram-wrap {
+      overflow-x: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      width: 100%;
+      min-width: 760px;
+      height: auto;
+    }
+
+    .parts-list,
+    .pin-list {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    .pin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    .pin-table th,
+    .pin-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .pin-table th {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .code-shell {
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      background: #071629;
+      box-shadow: var(--shadow);
+    }
+
+    .code-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid #30465f;
+      color: #cfdeed;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      padding: 24px;
+      color: #e8f2fb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      tab-size: 2;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .formula {
+      display: block;
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 15px;
+      border-left: 4px solid var(--red);
+      background: #fff;
+      color: var(--red-deep);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .verified {
+      border-top: 4px solid var(--blue);
+    }
+
+    .status-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+
+    .status-label::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .media-figure {
+      margin: 24px 0;
+    }
+
+    .media-figure img,
+    .media-figure video {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .media-figure img { padding: 16px; }
+    .media-figure video { aspect-ratio: 16 / 9; background: #0b1f3a; }
+
+    figcaption {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .asset-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      margin: 16px 0;
+      font-weight: 700;
+    }
+
+    details { margin-top: 24px; }
+    summary { cursor: pointer; font-weight: 800; margin-bottom: 16px; }
+    .video-chapters { margin-top: 18px; }
+    .video-chapters button { margin: 0 8px 8px 0; }
+
+    footer {
+      padding: 24px 0 48px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 28px, 1040px);
+      }
+
+      .site-header {
+        padding-top: 36px;
+      }
+
+      main {
+        padding-top: 36px;
+      }
+
+      section {
+        margin-top: 58px;
+      }
+
+      .goal-grid,
+      .wiring-grid,
+      .explain-grid,
+      .verification-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pattern-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .simulator-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .simulator-note {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 420px) {
+      body {
+        font-size: 16px;
+      }
+
+      h1 {
+        font-size: 2.28rem;
+      }
+
+      .led-bank {
+        gap: 9px;
+      }
+
+      .led {
+        min-width: 48px;
+      }
+
+      .controls {
+        justify-content: stretch;
+      }
+
+      .control-button {
+        flex: 1 1 30%;
+      }
+
+      .speed-wrap {
+        justify-content: space-between;
+        width: 100%;
+        margin: 4px 0 0;
+      }
+
+      .speed-select {
+        flex: 1;
+      }
+    }
+
+    body { word-break: keep-all; }
+    .led-bank.three { grid-template-columns: repeat(3, minmax(54px, 104px)); }
+    .led[data-color="blue"].is-on { border-color: #1679d7; background: #40bfff; box-shadow: inset -10px -12px 18px #1265a844, 0 0 30px #40bfffa0; }
+    .led[data-color="green"].is-on { border-color: #14863c; background: #57e77e; box-shadow: inset -10px -12px 18px #14863c44, 0 0 30px #57e77ea0; }
+
+    .pot-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      max-width: 620px;
+      margin: 34px auto 0;
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .pot-row input[type="range"] { width: 100%; accent-color: var(--red-deep); }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      max-width: 620px;
+      margin: 18px auto 0;
+      text-align: center;
+    }
+
+    .readout {
+      padding: 10px 8px;
+      border: 1px solid #aebed0;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .readout span { display: block; color: var(--muted); font-size: 0.74rem; font-weight: 800; }
+    .readout strong { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.05rem; color: var(--red-deep); }
+
+    .timeline {
+      position: relative;
+      max-width: 620px;
+      height: 46px;
+      margin: 26px auto 0;
+      border: 1px solid #aebed0;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--red-soft) 0 60%, #fff 60% 100%);
+    }
+
+    .timeline .mark {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 2px dashed #9eb0c5;
+    }
+
+    .timeline .mark span {
+      position: absolute;
+      top: 100%;
+      left: -1px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: translateX(-50%);
+    }
+
+    .timeline .head {
+      position: absolute;
+      top: -6px;
+      bottom: -6px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .timeline-caption { max-width: 620px; margin: 34px auto 0; color: var(--muted); font-size: 0.84rem; text-align: center; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .data-table th { color: var(--muted); font-size: 0.8rem; }
+    .data-table td.bad { color: var(--red-deep); font-weight: 800; }
+    .data-table td.ok { color: #14863c; font-weight: 800; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .code-shell.light pre { font-size: 0.84rem; }
+    .code-toolbar a { color: #9fd2ff; }
+    #videoFigure video { aspect-ratio: auto; max-height: 80vh; object-fit: contain; }
+    .back-link { display: inline-block; margin-bottom: 18px; font-size: 0.9rem; font-weight: 800; }
+
+    @media (max-width: 760px) {
+      .two-col { grid-template-columns: 1fr; }
+      .readout-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  
+    .flow-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .app-link {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .pipeline li {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .pipeline li + li::before {
+      content: "\2192";
+      margin-right: 8px;
+      color: var(--muted);
+    }
+
+    .chart-figure svg {
+      display: block;
+      width: 100%;
+      max-width: 560px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .media-figure img.photo,
+    .media-figure video {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .flow-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header page">
+    <a class="back-link" href="../">← 아두이노 실습 기록</a>
+    <p class="eyebrow">아두이노 실습 기록</p>
+    <h1>손가락 간격으로<br>LED 밝기 조절하기</h1>
+    <p class="lead">웹캠에 비친 손에서 엄지와 검지 끝 사이의 거리를 cm 단위로 재고, 그 거리로 p5 슬라이더를 움직인다. 슬라이더 값은 Web Serial로 Arduino에 가고, Arduino는 그 값을 눈에 보이는 밝기에 맞춰 D9의 PWM으로 바꾼다.</p>
+    <div class="meta" aria-label="게시물 정보">
+      <span>202601537 박창우</span>
+      <span>Arduino Uno · p5.js · ml5.js · Web Serial</span>
+      <span>D9 PWM</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <article>
+      <section aria-labelledby="task-title">
+        <h2 id="task-title"><span class="section-number">01</span>과제</h2>
+        <div class="two-col">
+          <div class="note">
+            <h3>미션</h3>
+            <p>p5에서 <strong>엄지와 집게손가락의 간격</strong>으로 슬라이더를 조절하고, 그 슬라이더 값을 아두이노로 보내 <strong>LED의 밝기를 조절</strong>한다.</p>
+            <a class="app-link" href="app/">앱 바로 실행 (Chrome·Edge)</a>
+          </div>
+          <div class="note">
+            <h3>결과 요약</h3>
+            <ul>
+              <li>ml5.js handPose가 찾은 손 관절 21개 중 엄지 끝과 검지 끝 사이의 <strong>실제 거리(cm)</strong>를 잰다. 손이 카메라에서 멀어져도 값이 같다.</li>
+              <li>중지·약지·새끼손가락을 <strong>접은 동안에만</strong> 슬라이더가 따라온다. 손을 펴거나 화면 밖으로 빼면 그 밝기에서 멈춘다.</li>
+              <li>손떨림은 <strong>1€ 필터</strong>로 줄였다. 가만히 있으면 값이 안정되고, 빠르게 움직이면 바로 따라온다.</li>
+              <li>Arduino는 받은 값을 <strong>CIE 1931 밝기 공식</strong>으로 PWM 값으로 바꾼다. 손가락을 반쯤 벌리면 LED가 눈으로 보기에 반쯤 밝도록 계산한다.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="flow-title">
+        <h2 id="flow-title"><span class="section-number">02</span>전체 흐름</h2>
+        <ol class="pipeline" aria-label="데이터 흐름">
+          <li>웹캠</li>
+          <li>ml5 handPose (관절 21개, 3D 좌표)</li>
+          <li>엄지–검지 거리 cm</li>
+          <li>1€ 필터</li>
+          <li>p5 슬라이더 0~255</li>
+          <li>Web Serial <code>LEVEL:값</code></li>
+          <li>Arduino 밝기 공식</li>
+          <li>D9 PWM → LED</li>
+        </ol>
+        <p style="margin-top: 18px;">브라우저와 Arduino는 9600 baud로 텍스트를 한 줄씩 주고받는다. 이번 과제용으로 메시지를 새로 정했다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>방향</th><th>메시지</th><th>뜻</th></tr></thead>
+            <tbody>
+              <tr><td>웹 → Arduino</td><td><code>LEVEL:0</code>~<code>LEVEL:255</code></td><td>슬라이더 값(눈에 보이는 밝기 단계)</td></tr>
+              <tr><td>Arduino → 웹</td><td><code>READY</code></td><td>리셋이 끝나 명령을 받을 수 있음</td></tr>
+              <tr><td>Arduino → 웹</td><td><code>PWM:0</code>~<code>PWM:255</code></td><td>실제로 D9에 쓴 PWM 값. 웹 화면에 표시한다.</td></tr>
+              <tr><td>Arduino → 웹</td><td><code>ERR:내용</code></td><td>형식이 틀린 줄이라 무시함</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="design-title">
+        <h2 id="design-title"><span class="section-number">03</span>설계</h2>
+        <div class="flow-list">
+          <div class="note">
+            <h3>1. 간격은 화면 픽셀이 아니라 실제 거리로 잰다</h3>
+            <p>화면에서 두 손끝 사이 픽셀 수를 재면, 같은 손 모양이라도 손이 카메라에 가까우면 커지고 멀면 작아진다. 손을 옆으로 돌려도 줄어든다. ml5 handPose는 관절마다 화면 좌표(<code>keypoints</code>)와 함께 손 중심을 기준으로 한 <strong>3D 좌표(<code>keypoints3D</code>, 단위 m)</strong>를 준다. 이 3D 좌표로 엄지 끝(4번)과 검지 끝(8번) 사이 거리를 구하면 손의 위치와 방향에 거의 상관없이 같은 값이 나온다.</p>
+            <p>2 cm 이하는 0, 10 cm 이상은 255로 하고 그 사이는 직선으로 나눴다.</p>
+          </div>
+          <div class="note">
+            <h3>2. 세 손가락을 접은 동안에만 조절한다</h3>
+            <p>손가락 간격이 언제나 슬라이더를 움직이면, 원하는 밝기를 맞춘 뒤 손을 내리는 동안 간격이 바뀌어 값이 틀어진다. 그래서 <strong>중지·약지·새끼손가락이 모두 접혀 있을 때만</strong> 조절한다. 손가락 끝이 가운데 마디(PIP)보다 손목에 더 가까우면 접힌 것으로 본다. 곧게 편 손가락은 끝이 항상 그 마디보다 멀다. 이것도 3D 좌표로 비교하므로 손을 기울여도 판단이 같다.</p>
+            <p>화면에는 세 손끝에 점을 찍어, 접히면 초록, 펴져 있으면 회색으로 보여 준다.</p>
+          </div>
+          <div class="note">
+            <h3>3. 손떨림은 1€ 필터로 줄인다</h3>
+            <p>손을 가만히 두어도 인식된 관절 위치는 조금씩 떨린다. 단순히 이전 값과 섞는 방식은 많이 섞으면 늦게 따라오고, 적게 섞으면 떨림이 남는다. <strong>1€(One Euro) 필터</strong>(Casiez·Roussel·Vogel, CHI 2012)는 값이 변하는 속도를 보고 섞는 정도를 바꾼다. 느리게 움직이면 강하게 걸러 떨림을 없애고, 빠르게 움직이면 약하게 걸러 바로 따라간다.</p>
+          </div>
+          <div class="note">
+            <h3>4. 밝기는 눈에 보이는 대로 바꾼다</h3>
+            <p>지난 과제(p5 슬라이더) 고찰 3에서, PWM 값을 그대로 올리면 어두운 쪽에서는 밝기가 크게 바뀌고 밝은 쪽에서는 거의 그대로 보인다고 적었다. 이번에는 슬라이더 값을 '눈에 보이는 밝기 단계'로 보고, Arduino가 <strong>CIE 1931 밝기(L*) 공식</strong>으로 PWM 값을 계산한다. 슬라이더 128(가운데)은 PWM 47이 된다.</p>
+          </div>
+          <div class="note">
+            <h3>5. Arduino가 준비된 뒤에 보낸다</h3>
+            <p>Uno는 시리얼 포트가 열리면 리셋되고, 약 1~2초 동안 들어온 내용을 받지 못한다. 그래서 Arduino는 준비가 끝나면 <code>READY</code>를 보내고, 웹은 그 뒤에 현재 슬라이더 값을 보낸다.</p>
+          </div>
+          <div class="note">
+            <h3>6. 전송은 한 번에 하나, 밀린 값은 최신 값만</h3>
+            <p>손 인식은 1초에 수십 번 값을 낸다. 앞 전송이 끝나기 전에 바뀐 값은 하나만 남겨 두었다가(가장 최근 값) 앞 전송이 끝나면 보낸다. 오래된 값이 줄줄이 밀려 LED가 늦게 따라오는 일이 없다.</p>
+          </div>
+        </div>
+        <figure class="media-figure chart-figure" style="margin-top: 22px;">
+          <svg viewBox="0 0 480 330" role="img" aria-label="슬라이더 값에 따른 PWM 듀티. 점선은 그대로 보내는 경우의 직선이고, 주황 곡선은 CIE 1931 밝기 공식으로 바꾼 값이다. 슬라이더 128에서 직선은 128, 곡선은 47이다." font-size="12" fill="var(--muted)">
+  <rect x="56" y="16" width="400" height="260" fill="none" stroke="var(--line)"/>
+  <line x1="56.0" y1="276.0" x2="456.0" y2="16.0" stroke="var(--muted)" stroke-dasharray="5 5"/>
+  <polyline points="56.0,276.0 57.6,276.0 59.1,276.0 60.7,276.0 62.3,276.0 63.8,275.0 65.4,275.0 67.0,275.0 68.5,275.0 70.1,275.0 71.7,275.0 73.3,275.0 74.8,275.0 76.4,275.0 78.0,274.0 79.5,274.0 81.1,274.0 82.7,274.0 84.2,274.0 85.8,274.0 87.4,274.0 88.9,274.0 90.5,274.0 92.1,272.9 93.6,272.9 95.2,272.9 96.8,272.9 98.4,272.9 99.9,272.9 101.5,272.9 103.1,272.9 104.6,271.9 106.2,271.9 107.8,271.9 109.3,271.9 110.9,271.9 112.5,271.9 114.0,270.9 115.6,270.9 117.2,270.9 118.7,270.9 120.3,270.9 121.9,269.9 123.5,269.9 125.0,269.9 126.6,269.9 128.2,269.9 129.7,268.9 131.3,268.9 132.9,268.9 134.4,268.9 136.0,267.8 137.6,267.8 139.1,267.8 140.7,267.8 142.3,266.8 143.8,266.8 145.4,266.8 147.0,265.8 148.5,265.8 150.1,265.8 151.7,265.8 153.3,264.8 154.8,264.8 156.4,264.8 158.0,263.8 159.5,263.8 161.1,263.8 162.7,262.7 164.2,262.7 165.8,262.7 167.4,261.7 168.9,261.7 170.5,260.7 172.1,260.7 173.6,260.7 175.2,259.7 176.8,259.7 178.4,258.7 179.9,258.7 181.5,258.7 183.1,257.6 184.6,257.6 186.2,256.6 187.8,256.6 189.3,255.6 190.9,255.6 192.5,254.6 194.0,254.6 195.6,253.6 197.2,253.6 198.7,252.5 200.3,252.5 201.9,251.5 203.5,251.5 205.0,250.5 206.6,250.5 208.2,249.5 209.7,249.5 211.3,248.5 212.9,247.5 214.4,247.5 216.0,246.4 217.6,246.4 219.1,245.4 220.7,244.4 222.3,244.4 223.8,243.4 225.4,243.4 227.0,242.4 228.5,241.3 230.1,241.3 231.7,240.3 233.3,239.3 234.8,238.3 236.4,238.3 238.0,237.3 239.5,236.2 241.1,236.2 242.7,235.2 244.2,234.2 245.8,233.2 247.4,232.2 248.9,232.2 250.5,231.1 252.1,230.1 253.6,229.1 255.2,228.1 256.8,228.1 258.4,227.1 259.9,226.0 261.5,225.0 263.1,224.0 264.6,223.0 266.2,222.0 267.8,220.9 269.3,220.9 270.9,219.9 272.5,218.9 274.0,217.9 275.6,216.9 277.2,215.8 278.7,214.8 280.3,213.8 281.9,212.8 283.5,211.8 285.0,210.7 286.6,209.7 288.2,208.7 289.7,207.7 291.3,206.7 292.9,204.6 294.4,203.6 296.0,202.6 297.6,201.6 299.1,200.5 300.7,199.5 302.3,198.5 303.8,197.5 305.4,195.5 307.0,194.4 308.5,193.4 310.1,192.4 311.7,191.4 313.3,189.3 314.8,188.3 316.4,187.3 318.0,186.3 319.5,184.2 321.1,183.2 322.7,182.2 324.2,180.2 325.8,179.1 327.4,178.1 328.9,176.1 330.5,175.1 332.1,174.0 333.6,172.0 335.2,171.0 336.8,168.9 338.4,167.9 339.9,165.9 341.5,164.9 343.1,163.8 344.6,161.8 346.2,160.8 347.8,158.7 349.3,157.7 350.9,155.7 352.5,153.6 354.0,152.6 355.6,150.6 357.2,149.6 358.7,147.5 360.3,145.5 361.9,144.5 363.5,142.4 365.0,141.4 366.6,139.4 368.2,137.3 369.7,135.3 371.3,134.3 372.9,132.2 374.4,130.2 376.0,128.2 377.6,127.1 379.1,125.1 380.7,123.1 382.3,121.0 383.8,119.0 385.4,118.0 387.0,115.9 388.5,113.9 390.1,111.8 391.7,109.8 393.3,107.8 394.8,105.7 396.4,103.7 398.0,101.6 399.5,99.6 401.1,97.6 402.7,95.5 404.2,93.5 405.8,91.5 407.4,89.4 408.9,87.4 410.5,85.3 412.1,83.3 413.6,81.3 415.2,79.2 416.8,76.2 418.4,74.1 419.9,72.1 421.5,70.0 423.1,68.0 424.6,64.9 426.2,62.9 427.8,60.9 429.3,57.8 430.9,55.8 432.5,53.7 434.0,51.7 435.6,48.6 437.2,46.6 438.7,43.5 440.3,41.5 441.9,39.5 443.5,36.4 445.0,34.4 446.6,31.3 448.2,29.3 449.7,26.2 451.3,24.2 452.9,21.1 454.4,19.1 456.0,16.0" fill="none" stroke="#e88a10" stroke-width="3"/>
+  <circle cx="256.8" cy="228.1" r="5" fill="#e88a10"/>
+  <text x="266.8" y="246.1" fill="var(--ink)">128 → PWM 47</text>
+  <text x="212.9" y="123.1" text-anchor="end" fill="var(--muted)">그대로 보낼 때</text>
+  <text x="363.5" y="204.6" fill="#b45309">CIE 1931 밝기</text>
+  <line x1="56.0" y1="276" x2="56.0" y2="281" stroke="var(--muted)"/><text x="56.0" y="296" text-anchor="middle">0</text><line x1="51" y1="276.0" x2="56" y2="276.0" stroke="var(--muted)"/><text x="47" y="280.0" text-anchor="end">0</text><line x1="156.4" y1="276" x2="156.4" y2="281" stroke="var(--muted)"/><text x="156.4" y="296" text-anchor="middle">64</text><line x1="51" y1="210.7" x2="56" y2="210.7" stroke="var(--muted)"/><text x="47" y="214.7" text-anchor="end">64</text><line x1="256.8" y1="276" x2="256.8" y2="281" stroke="var(--muted)"/><text x="256.8" y="296" text-anchor="middle">128</text><line x1="51" y1="145.5" x2="56" y2="145.5" stroke="var(--muted)"/><text x="47" y="149.5" text-anchor="end">128</text><line x1="357.2" y1="276" x2="357.2" y2="281" stroke="var(--muted)"/><text x="357.2" y="296" text-anchor="middle">192</text><line x1="51" y1="80.2" x2="56" y2="80.2" stroke="var(--muted)"/><text x="47" y="84.2" text-anchor="end">192</text><line x1="456.0" y1="276" x2="456.0" y2="281" stroke="var(--muted)"/><text x="456.0" y="296" text-anchor="middle">255</text><line x1="51" y1="16.0" x2="56" y2="16.0" stroke="var(--muted)"/><text x="47" y="20.0" text-anchor="end">255</text>
+  <text x="256.0" y="316" text-anchor="middle" fill="var(--ink)">슬라이더 값 (LEVEL)</text>
+  <text transform="translate(14 146.0) rotate(-90)" text-anchor="middle" fill="var(--ink)">PWM 듀티</text>
+</svg>
+          <figcaption>슬라이더 값에 따른 PWM 값. 점선은 슬라이더 값을 그대로 PWM으로 쓸 때, 주황 곡선은 이번 스케치의 <code>dutyForLevel()</code>이 계산한 값이다. 슬라이더 0~4는 PWM 0이 된다. 8비트 PWM으로는 그보다 어두운 밝기를 낼 수 없기 때문이다.</figcaption>
+        </figure>
+      </section>
+
+      <section aria-labelledby="wiring-title">
+        <h2 id="wiring-title"><span class="section-number">04</span>회로와 연결도</h2>
+        <p>회로는 지난 p5 슬라이더 과제와 같다. 수업 회로에 더한 <strong>파랑 LED2와 220 Ω 저항</strong>을 쓴다. D9 → 220 Ω → LED2 긴 다리(+), 짧은 다리(−) → GND 레일이다. 수업 회로의 나머지 부품은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다.</p>
+        <figure class="media-figure">
+          <a href="assets/finger-led-breadboard.svg" aria-label="연결도 크게 보기">
+            <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 파랑 LED2가 초록 선으로 D9에서 220옴 저항을 거쳐 연결되고 음극은 GND 레일로 간다. 수업 회로의 LED1(D13), 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
+          </a>
+          <figcaption>수업 Fritzing 파일(PotButtonLCD.fzz)의 브레드보드 화면을 같은 부품 그림과 좌표로 다시 그리고 LED2·220 Ω 저항·D9 선(초록)을 더한 연결도다(지난 과제와 같은 그림). 부품 그림은 Fritzing 기본 부품(fritzing-parts, CC BY-SA 3.0)이고, LCD는 수업 파일에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley)이다.</figcaption>
+        </figure>
+        <div class="asset-links">
+          <a href="assets/finger-led-breadboard.svg" download>연결도 다운로드 (.svg)</a>
+          <a href="assets/finger-led-breadboard.png" download>연결도 이미지 (.png)</a>
+        </div>
+        <div class="wiring-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>핀 연결</h3>
+            <table class="pin-table">
+              <thead><tr><th>Arduino</th><th>연결</th><th>이번 스케치</th></tr></thead>
+              <tbody>
+                <tr><td><strong>D9 (~)</strong></td><td><strong>220 Ω → 파랑 LED2(+), (−) → GND</strong></td><td><strong>PWM 밝기</strong></td></tr>
+                <tr><td>USB</td><td>노트북과 연결</td><td>Web Serial 9600 baud</td></tr>
+                <tr><td>D13, D2, A0, A4/A5</td><td>수업 회로(LED1, 버튼, 가변저항, LCD)</td><td>사용 안 함</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h3>준비물</h3>
+            <ul class="parts-list">
+              <li>Arduino Uno, LED 1개, 220 Ω 저항 1개, 점퍼선</li>
+              <li>웹캠이 있는 노트북</li>
+              <li>Chrome 또는 Edge (Web Serial과 카메라를 쓰는 브라우저)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="code-title">
+        <h2 id="code-title"><span class="section-number">05</span>코드</h2>
+        <p>웹 쪽은 파일 넷이다. <code>pinch.js</code>는 손 모양 계산만 하고 p5·ml5를 부르지 않아서 브라우저 밖에서도 시험할 수 있다. <code>serial-link.js</code>는 Web Serial 연결과 줄 단위 송수신을 맡는다. <code>sketch.js</code>는 둘을 묶어 화면을 그린다. 모두 이번 과제를 위해 새로 썼다.</p>
+        <div class="code-shell">
+          <div class="code-toolbar">
+            <span>app/sketch.js (p5.js)</span>
+            <a href="app/sketch.js" download>다운로드</a>
+          </div>
+          <pre><code>// Finger dimmer: the gap between thumb and index finger moves a p5 slider, and the slider's
+// level goes to the Arduino (finger_led.ino) as "LEVEL:&lt;0-255&gt;".
+// The slider follows the fingers only while middle, ring and pinky are folded; open the hand
+// or take it away and the level stays where it was.
+
+const BAUD_RATE = 9600;
+const CLOSED_CM = 2;     // thumb-index gap at or below this gives level 0
+const OPEN_CM = 10;      // gap at or above this gives level 255
+const GAP_SMOOTHING = { minCutoff: 0.5, beta: 0.2, dCutoff: 1.0 };   // One Euro filter, gap in cm
+
+const COLORS = { active: '#f59e0b', idle: '#e2e8f0', folded: '#22c55e', open: '#94a3b8' };
+
+let video, slider, link;
+let hand = null;         // latest detected hand, or null
+let gapCm = null;        // smoothed thumb-index gap of that hand
+let folded = [];         // middle, ring, pinky
+let gripping = false;
+let arduinoReady = false;
+let arduinoDuty = null;  // PWM duty the Arduino last reported
+let linkBusy = false;
+const gapFilter = new OneEuroFilter(GAP_SMOOTHING);
+
+async function setup() {
+  createCanvas(640, 480).parent('stage');
+  textFont('sans-serif');
+  // Ask for 4:3 so the frame is not stretched into the 640x480 canvas.
+  video = createCapture({ video: { width: 640, height: 480 }, audio: false }, { flipped: true });
+  video.size(640, 480);
+  video.hide();
+
+  slider = createSlider(0, 255, 0, 1).parent('slider-slot').id('level');
+  slider.input(levelChanged);
+  link = new SerialLink(BAUD_RATE, arduinoSaid, arduinoClosed);
+  select('#connect').mousePressed(toggleArduino);
+  if (!('serial' in navigator)) showLink('이 브라우저는 Web Serial을 지원하지 않습니다. Chrome이나 Edge로 여세요.');
+
+  const handPose = await ml5.handPose({ maxHands: 1, flipped: true });
+  handPose.detectStart(video, handsFound);
+  select('#hint').html('엄지와 검지만 펴고 나머지 세 손가락을 접으면 조절됩니다.');
+}
+
+function handsFound(results) {
+  hand = results[0] ?? null;
+  if (!hand) {
+    gapFilter.reset();
+    gripping = false;
+    return;
+  }
+  gapCm = gapFilter.filter(pinchGapCm(hand), performance.now() / 1000);
+  folded = foldedFingers(hand);
+  gripping = folded.every(Boolean);
+  if (!gripping) return;
+  const level = gapToLevel(gapCm, CLOSED_CM, OPEN_CM);
+  if (level === Number(slider.value())) return;
+  slider.value(level);
+  levelChanged();
+}
+
+function levelChanged() {
+  select('#level-out').html(slider.value() + ' / 255');
+  if (arduinoReady) link.sendLatest('LEVEL:' + slider.value());
+}
+
+async function toggleArduino() {
+  if (linkBusy) return;
+  linkBusy = true;
+  try {
+    if (link.isOpen) {
+      await link.close();
+    } else {
+      await link.open();
+      arduinoReady = false;
+      showLink('연결됨, Arduino 준비 기다리는 중...');
+    }
+  } catch (error) {
+    showLink(error.name === 'NotFoundError' ? '포트를 고르지 않았습니다.' : '연결 실패: ' + error.message);
+  } finally {
+    linkBusy = false;
+    select('#connect').html(link.isOpen ? 'Arduino 연결 끊기' : 'Arduino 연결');
+  }
+}
+
+// The board resets when the port opens and prints READY when it can listen again.
+function arduinoSaid(line) {
+  if (line === 'READY') {
+    arduinoReady = true;
+    showLink('연결됨');
+    levelChanged();
+    return;
+  }
+  const duty = line.match(/^PWM:(\d+)$/);
+  if (duty) {
+    arduinoDuty = Number(duty[1]);
+    select('#duty-out').html('Arduino PWM ' + arduinoDuty + ' / 255');
+    return;
+  }
+  showLink('Arduino: ' + line);
+}
+
+function arduinoClosed() {
+  arduinoReady = false;
+  arduinoDuty = null;
+  showLink('연결 안 됨');
+  select('#duty-out').html('');
+  select('#connect').html('Arduino 연결');
+}
+
+function showLink(message) {
+  select('#link-state').html(message);
+}
+
+function draw() {
+  image(video, 0, 0, width, height);
+  if (hand) drawHand(hand);
+  drawBadge();
+}
+
+function drawHand(h) {
+  const k = h.keypoints;
+  [12, 16, 20].forEach((tip, i) =&gt; {
+    noStroke();
+    fill(folded[i] ? COLORS.folded : COLORS.open);
+    circle(k[tip].x, k[tip].y, 14);
+  });
+
+  const thumb = k[4];
+  const index = k[8];
+  const color = gripping ? COLORS.active : COLORS.idle;
+  stroke(color);
+  strokeWeight(gripping ? 5 : 2);
+  line(thumb.x, thumb.y, index.x, index.y);
+  noFill();
+  circle(thumb.x, thumb.y, 22);
+  circle(index.x, index.y, 22);
+
+  const label = gapCm.toFixed(1) + ' cm';
+  const x = (thumb.x + index.x) / 2 + 16;
+  const y = (thumb.y + index.y) / 2;
+  textSize(16);
+  noStroke();
+  fill(0, 160);
+  rect(x - 6, y - 15, textWidth(label) + 12, 24, 6);
+  fill(color);
+  text(label, x, y + 2);
+}
+
+function drawBadge() {
+  const message = !hand ? '손을 보여 주세요'
+    : gripping ? '조절 중'
+    : '고정 (세 손가락을 접으면 조절)';
+  textSize(18);
+  noStroke();
+  fill(0, 170);
+  rect(12, 12, textWidth(message) + 24, 34, 8);
+  fill(gripping ? COLORS.active : 255);
+  text(message, 24, 35);
+}</code></pre>
+        </div>
+        <div class="code-shell" style="margin-top: 18px;">
+          <div class="code-toolbar">
+            <span>app/pinch.js (손 모양 계산, 1€ 필터)</span>
+            <a href="app/pinch.js" download>다운로드</a>
+          </div>
+          <pre><code>// Hand geometry for the finger dimmer. Nothing here calls p5 or ml5, so it runs in tests too.
+//
+// Landmarks follow MediaPipe's 21-point hand layout. ml5 handPose gives each hand both
+// `keypoints` (pixels on the video) and `keypoints3D` (world coordinates in metres around the
+// hand's centre). Distances here use keypoints3D: they keep the hand's real size whether it is
+// near the camera or far away, and do not shrink when the hand turns sideways.
+
+const WRIST = 0;
+const THUMB_TIP = 4;
+const INDEX_TIP = 8;
+const CURLING_FINGERS = [   // middle, ring and pinky as [PIP joint, fingertip]
+  [10, 12],
+  [14, 16],
+  [18, 20],
+];
+
+function distance3D(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+function pinchGapCm(hand) {
+  return 100 * distance3D(hand.keypoints3D[THUMB_TIP], hand.keypoints3D[INDEX_TIP]);
+}
+
+// A finger is folded when its tip is nearer the wrist than its middle joint;
+// a straight finger always reaches past that joint.
+function foldedFingers(hand) {
+  const k = hand.keypoints3D;
+  return CURLING_FINGERS.map(([pip, tip]) =&gt; distance3D(k[tip], k[WRIST]) &lt; distance3D(k[pip], k[WRIST]));
+}
+
+function isGripping(hand) {
+  return foldedFingers(hand).every(Boolean);
+}
+
+function gapToLevel(gapCm, closedCm, openCm) {
+  const t = (gapCm - closedCm) / (openCm - closedCm);
+  return Math.round(255 * Math.min(1, Math.max(0, t)));
+}
+
+// One Euro filter: Casiez, Roussel and Vogel, "1 Euro Filter", CHI 2012.
+// A low-pass filter whose cutoff frequency rises with the signal's speed, so a still hand
+// reads steady and a moving hand is followed without noticeable lag.
+class OneEuroFilter {
+  constructor({ minCutoff, beta, dCutoff }) {
+    this.minCutoff = minCutoff;   // Hz, smoothing while still
+    this.beta = beta;             // how fast the cutoff rises with speed
+    this.dCutoff = dCutoff;       // Hz, smoothing of the speed estimate
+    this.reset();
+  }
+
+  reset() {
+    this.time = null;
+  }
+
+  filter(value, timeSeconds) {
+    if (this.time === null) {
+      this.time = timeSeconds;
+      this.raw = value;
+      this.value = value;
+      this.speed = 0;
+      return value;
+    }
+    const dt = timeSeconds - this.time;
+    if (dt &lt;= 0) return this.value;
+    this.time = timeSeconds;
+    this.speed += smoothingFactor(this.dCutoff, dt) * ((value - this.raw) / dt - this.speed);
+    this.raw = value;
+    const cutoff = this.minCutoff + this.beta * Math.abs(this.speed);
+    this.value += smoothingFactor(cutoff, dt) * (value - this.value);
+    return this.value;
+  }
+}
+
+// Weight of the new sample in an exponential low-pass filter with the given cutoff frequency.
+function smoothingFactor(cutoffHz, dt) {
+  const r = 2 * Math.PI * cutoffHz * dt;
+  return r / (r + 1);
+}</code></pre>
+        </div>
+        <div class="code-shell" style="margin-top: 18px;">
+          <div class="code-toolbar">
+            <span>app/serial-link.js (Web Serial)</span>
+            <a href="app/serial-link.js" download>다운로드</a>
+          </div>
+          <pre><code>// Line-based link to the Arduino over Web Serial (Chrome and Edge).
+//
+// Lines are written one at a time. While a write is in flight only the newest pending line is
+// kept, so a fast-moving hand never builds a backlog of stale levels behind the 9600-baud link.
+class SerialLink {
+  constructor(baudRate, onLine, onClose) {
+    this.baudRate = baudRate;
+    this.onLine = onLine;     // called with each received line, trimmed
+    this.onClose = onClose;   // called once each time the link closes, including on unplug
+    this.port = null;
+    this.encoder = new TextEncoder();
+  }
+
+  get isOpen() {
+    return this.port !== null;
+  }
+
+  // Shows the browser's port picker, so it must run inside a click handler.
+  async open() {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: this.baudRate });
+    this.port = port;
+    this.writer = port.writable.getWriter();
+    this.pending = null;
+    this.flushing = null;
+    this.reading = this.readLines(port);
+  }
+
+  async close() {
+    const port = this.port;
+    if (!port) return;
+    this.port = null;
+    this.pending = null;
+    await this.reader.cancel().catch(() =&gt; {});
+    await this.reading;
+    await this.flushing;
+    this.writer.releaseLock();
+    await port.close().catch(() =&gt; {});
+    this.onClose();
+  }
+
+  sendLatest(line) {
+    if (!this.port) return;
+    this.pending = line;
+    this.flushing ??= this.flush();
+  }
+
+  async flush() {
+    try {
+      while (this.pending !== null) {
+        const line = this.pending;
+        this.pending = null;
+        await this.writer.write(this.encoder.encode(line + '\n'));
+      }
+    } catch {
+      this.close();   // a failed write means the device is gone
+    } finally {
+      this.flushing = null;
+    }
+  }
+
+  async readLines(port) {
+    const decoder = new TextDecoder();
+    let buffered = '';
+    // A framing or overrun error (likely while the board resets) only replaces port.readable,
+    // so reading resumes on the new stream. port.readable is null once the device is gone.
+    while (this.port === port &amp;&amp; port.readable) {
+      this.reader = port.readable.getReader();
+      try {
+        for (;;) {
+          const { value, done } = await this.reader.read();
+          if (done) break;
+          buffered += decoder.decode(value, { stream: true });
+          const lines = buffered.split('\n');
+          buffered = lines.pop();
+          for (const line of lines) {
+            if (line.trim()) this.onLine(line.trim());
+          }
+        }
+      } catch {
+        // Retried by the loop condition above.
+      } finally {
+        this.reader.releaseLock();
+      }
+    }
+    if (this.port === port) this.close();
+  }
+}</code></pre>
+        </div>
+        <div class="code-shell" style="margin-top: 18px;">
+          <div class="code-toolbar">
+            <span>app/index.html</span>
+            <a href="app/index.html" download>다운로드</a>
+          </div>
+          <pre><code>&lt;!doctype html&gt;
+&lt;html lang="ko"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="robots" content="noindex, nofollow"&gt;
+  &lt;title&gt;손가락 LED 조절기&lt;/title&gt;
+  &lt;link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1f3a'/%3E%3Ccircle cx='22' cy='40' r='7' fill='%23f59e0b'/%3E%3Ccircle cx='42' cy='22' r='7' fill='%23f59e0b'/%3E%3Cpath d='M22 40 42 22' stroke='%23f59e0b' stroke-width='4'/%3E%3C/svg%3E"&gt;
+  &lt;style&gt;
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0b1220; color: #e2e8f0; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    #stage canvas { display: block; width: 100% !important; height: auto !important; border-radius: 12px; background: #000; }
+    .panel { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #111a2e; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #slider-slot { flex: 1; min-width: 200px; }
+    #level { width: 100%; accent-color: #f59e0b; }
+    #level-out { font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; font-weight: 700; }
+    button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 0; background: #2563eb; color: #fff; cursor: pointer; }
+    #link-state, #duty-out, #hint { color: #94a3b8; font-size: 14px; }
+    #duty-out { font-variant-numeric: tabular-nums; }
+    a { color: #93c5fd; }
+  &lt;/style&gt;
+  &lt;script src="https://cdn.jsdelivr.net/npm/p5@2.3.4/lib/p5.min.js"&gt;&lt;/script&gt;
+  &lt;script src="https://cdn.jsdelivr.net/npm/ml5@1.4.0/dist/ml5.min.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;main&gt;
+    &lt;h1&gt;손가락 간격으로 LED 밝기 조절&lt;/h1&gt;
+    &lt;div id="stage"&gt;&lt;/div&gt;
+    &lt;div class="panel"&gt;
+      &lt;div class="row"&gt;
+        &lt;label for="level"&gt;LED 밝기&lt;/label&gt;
+        &lt;div id="slider-slot"&gt;&lt;/div&gt;
+        &lt;span id="level-out"&gt;0 / 255&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;p id="hint"&gt;손 인식 모델을 불러오는 중입니다...&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class="panel row"&gt;
+      &lt;button id="connect" type="button"&gt;Arduino 연결&lt;/button&gt;
+      &lt;span id="link-state"&gt;연결 안 됨&lt;/span&gt;
+      &lt;span id="duty-out"&gt;&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;p&gt;&lt;a href="../"&gt;← 설명 글로 돌아가기&lt;/a&gt;&lt;/p&gt;
+  &lt;/main&gt;
+  &lt;script src="pinch.js"&gt;&lt;/script&gt;
+  &lt;script src="serial-link.js"&gt;&lt;/script&gt;
+  &lt;script src="sketch.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+        <div class="code-shell" style="margin-top: 18px;">
+          <div class="code-toolbar">
+            <span>finger_led.ino (Arduino)</span>
+            <a href="finger_led/finger_led.ino" download>스케치 다운로드</a>
+          </div>
+          <pre><code>// Sets the brightness of the LED on D9 from "LEVEL:&lt;0-255&gt;" lines sent by the p5 page.
+//
+// The level is perceived brightness, not PWM duty. The eye is far more sensitive to changes
+// in dim light than in bright light, so a linear duty makes the bottom of the slider jump and
+// the top barely change. The CIE 1931 lightness formula converts the level to duty instead,
+// so equal finger movements look like equal steps of brightness.
+//
+// Replies (9600 baud, one line each):
+//   READY            after reset; the board resets whenever the port is opened
+//   PWM:&lt;duty&gt;       the duty actually written for a valid LEVEL line
+//   ERR:&lt;reason&gt;     the line was ignored
+
+const byte LED_PIN = 9;           // PWM-capable pin (~)
+const byte MAX_LINE_LENGTH = 15;  // "LEVEL:255" is 9 characters
+
+char line[MAX_LINE_LENGTH + 1];
+byte lineLength = 0;
+bool lineTooLong = false;
+
+byte dutyForLevel(byte level) {
+  float lightness = level * 100.0 / 255.0;                    // CIE L*, 0-100
+  float luminance = lightness &lt;= 8.0 ? lightness / 903.3      // linear segment near black
+                                     : pow((lightness + 16.0) / 116.0, 3);
+  return (byte)(luminance * 255.0 + 0.5);
+}
+
+// Accepts exactly "LEVEL:" followed by 1-3 digits with a value of at most 255.
+bool parseLevel(const char *text, byte *level) {
+  const char *digits = text + 6;
+  if (strncmp(text, "LEVEL:", 6) != 0 || !isdigit(digits[0])) return false;
+  char *end;
+  long value = strtol(digits, &amp;end, 10);
+  if (*end != '\0' || end - digits &gt; 3 || value &gt; 255) return false;
+  *level = value;
+  return true;
+}
+
+void handleLine() {
+  byte level;
+  if (!parseLevel(line, &amp;level)) {
+    Serial.print("ERR:");
+    Serial.println(line);
+    return;
+  }
+  byte duty = dutyForLevel(level);
+  analogWrite(LED_PIN, duty);
+  Serial.print("PWM:");
+  Serial.println(duty);
+}
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  analogWrite(LED_PIN, 0);
+  Serial.begin(9600);
+  Serial.println("READY");
+}
+
+void loop() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\r') continue;
+    if (c != '\n') {
+      if (lineLength &lt; MAX_LINE_LENGTH) line[lineLength++] = c;
+      else lineTooLong = true;
+      continue;
+    }
+    line[lineLength] = '\0';
+    if (lineTooLong) Serial.println("ERR:too long");
+    else if (lineLength &gt; 0) handleLine();
+    lineLength = 0;
+    lineTooLong = false;
+  }
+}</code></pre>
+        </div>
+      </section>
+
+      <section aria-labelledby="usage-title">
+        <h2 id="usage-title"><span class="section-number">06</span>사용법</h2>
+        <ol>
+          <li>Arduino IDE로 <code>finger_led.ino</code>를 Uno에 올린다.</li>
+          <li>Chrome이나 Edge로 <a href="app/">앱</a>을 열고 카메라를 허용한다. 손 인식 모델을 불러오는 데 몇 초 걸린다.</li>
+          <li><strong>Arduino 연결</strong>을 누르고 Uno의 포트를 고른다. '연결됨'이 뜨면 준비가 끝난 것이다.</li>
+          <li>손을 카메라에 보이고 중지·약지·새끼손가락을 접는다. 세 손끝 점이 초록이 되고 '조절 중'이 뜬다.</li>
+          <li>엄지와 검지 사이를 벌리면 밝아지고 좁히면 어두워진다. 손을 펴거나 화면 밖으로 빼면 그 밝기가 유지된다. 마우스로 슬라이더를 끌어도 된다.</li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="verification-title">
+        <h2 id="verification-title"><span class="section-number">07</span>검증</h2>
+        <div class="verification-grid">
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>Arduino Uno 컴파일</h3>
+            <p>Arduino IDE의 arduino-cli로 Uno 대상 컴파일에 성공했다. 프로그램 저장 공간 5,590바이트(17%), 전역 변수 244바이트(11%)다.</p>
+          </div>
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>브라우저에서 손 인식</h3>
+            <p>Chrome에 가짜 웹캠으로 손이 찍힌 영상을 넣고 앱을 열었다. 모델이 약 5초 만에 준비되었고, 손을 찾으면 관절 21개의 3D 좌표가 들어왔다. 가변저항 손잡이를 잡은 손에서 엄지–검지 거리가 2.8~5.4 cm로 나왔다. 콘솔 오류는 없었다.</p>
+          </div>
+        </div>
+        <p class="note" id="hardwarePending" style="margin-top: 16px;">실제 웹캠·Arduino로 손가락 간격에 따라 LED 밝기가 바뀌는지는 촬영하면서 확인하고 이 자리에 적는다.</p>
+
+        <h3 style="margin-top: 26px;">PC에서 Arduino 스케치에 메시지 넣어 보기 (13항목 통과)</h3>
+        <p>스케치를 PC에서 그대로 컴파일하고, 시리얼 입력과 핀 출력만 흉내 내어 여러 줄을 넣었다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>넣은 메시지</th><th>결과</th><th>판정</th></tr></thead>
+            <tbody>
+              <tr><td>(전원 켜짐)</td><td>D9 = 0, <code>READY</code> 응답</td><td class="ok">통과</td></tr>
+              <tr><td><code>LEVEL:255</code> / <code>LEVEL:0</code> / <code>LEVEL:128</code></td><td>PWM 255 / 0 / 47, 같은 값으로 <code>PWM:</code> 응답</td><td class="ok">통과</td></tr>
+              <tr><td>0~255 전체</td><td>256개 모두 CIE 공식과 같고, 값이 커질수록 PWM이 줄지 않음</td><td class="ok">통과</td></tr>
+              <tr><td><code>LEVEL:200\r\n</code></td><td>줄 끝 <code>\r</code>을 무시하고 처리</td><td class="ok">통과</td></tr>
+              <tr><td><code>LEV</code> + <code>EL:6</code> + <code>4\n</code> 나눠 도착</td><td>한 줄로 합쳐 64로 처리</td><td class="ok">통과</td></tr>
+              <tr><td>한 번에 두 줄</td><td>둘 다 차례로 처리</td><td class="ok">통과</td></tr>
+              <tr><td><code>LEVEL:256</code>, <code>LEVEL:</code>, <code>LEVEL:12a</code>, <code>LEVEL:-1</code>, <code>LEVEL:␣5</code>, <code>LEVEL:0255</code>, <code>level:5</code>, <code>PWM:100</code></td><td><code>ERR:</code> 응답, LED 그대로</td><td class="ok">통과</td></tr>
+              <tr><td>25글자짜리 긴 줄, 그다음 정상 줄</td><td><code>ERR:too long</code>, 다음 줄은 정상 처리</td><td class="ok">통과</td></tr>
+              <tr><td>빈 줄</td><td>응답 없음</td><td class="ok">통과</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top: 26px;">손 모양 계산과 1€ 필터 (15항목 통과)</h3>
+        <p><code>pinch.js</code>를 Node.js에서 그대로 실행했다. 손 관절 좌표를 직접 만들어 넣었다(손바닥 9 cm).</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>확인한 것</th><th>결과</th><th>판정</th></tr></thead>
+            <tbody>
+              <tr><td>엄지–검지 7 cm로 만든 손</td><td>7.00 cm</td><td class="ok">통과</td></tr>
+              <tr><td>편 손 / 세 손가락 접은 손 / 새끼만 편 손</td><td>조절 안 함 / 조절 / 조절 안 함</td><td class="ok">통과</td></tr>
+              <tr><td>손을 화면 안에서 120° 돌리고 카메라 쪽으로 60° 기울임</td><td>접힘 판단과 거리 7 cm가 그대로</td><td class="ok">통과</td></tr>
+              <tr><td>거리 → 슬라이더 값</td><td>2 cm 이하 0, 6 cm 128, 10 cm 이상 255</td><td class="ok">통과</td></tr>
+              <tr><td>6 cm에 ±0.4 cm 떨림, 2초</td><td>슬라이더 값 흔들림 폭 25 → 6</td><td class="ok">통과</td></tr>
+              <tr><td>0.3초 만에 3 → 9 cm로 벌림</td><td>멈춘 뒤 0.1초 안에 9 cm(±0.25)에 도달</td><td class="ok">통과</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top: 26px;">가짜 시리얼 포트로 전송 확인 (9항목 통과)</h3>
+        <p><code>serial-link.js</code>를 Node.js에서 실행하고, 전송 한 번에 10 ms 걸리는 가짜 포트를 붙였다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>상황</th><th>결과</th><th>판정</th></tr></thead>
+            <tbody>
+              <tr><td>값 50개를 한꺼번에 보냄</td><td>첫 값과 마지막 값 2개만 전송, 동시에 두 번 쓰는 일 없음</td><td class="ok">통과</td></tr>
+              <tr><td>값을 천천히 20번 바꿈</td><td>20개 모두 순서대로 전송</td><td class="ok">통과</td></tr>
+              <tr><td><code>REA</code> + <code>DY\r\nPWM:4</code> + <code>7\r\n</code> 나눠 받음</td><td><code>READY</code>, <code>PWM:47</code> 두 줄</td><td class="ok">통과</td></tr>
+              <tr><td>받는 중 통신 오류(리셋 중 생길 수 있음)</td><td>연결을 끊지 않고 이어서 받음</td><td class="ok">통과</td></tr>
+              <tr><td>USB를 뽑음</td><td>연결이 스스로 한 번 닫히고, 이후 전송은 무시</td><td class="ok">통과</td></tr>
+              <tr><td>전송 중에 연결 끊기</td><td>보내던 값은 마저 보내고 대기 값은 버린 뒤 포트를 닫음</td><td class="ok">통과</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top: 14px;">검사 코드가 실제로 잘못을 잡는지도 확인했다. 코드를 일부러 틀리게 바꾸면(오류 뒤 다시 받기 빼기, 전송 겹치기 허용, 2D 거리 쓰기, 화면 위아래만 보고 접힘 판단) 해당 항목이 실패한다. 검사 코드: <a href="https://github.com/arclightsforINU/arclightsforINU.github.io/tree/main/tools/fingersim">tools/fingersim</a> (<code>ino_test.cpp</code>, <code>pinch_test.mjs</code>, <code>link_test.mjs</code>)</p>
+      </section>
+
+      <section aria-labelledby="demo-title">
+        <h2 id="demo-title"><span class="section-number">08</span>실제 동작</h2>
+        <figure class="media-figure" id="videoFigure" hidden>
+          <video controls playsinline preload="metadata" poster="assets/finger-led-poster.jpg" aria-label="손가락 간격으로 파랑 LED 밝기를 조절하는 실제 동작 영상">
+            <source src="assets/finger-led.mp4" type="video/mp4">
+          </video>
+          <figcaption>실제 동작 영상(소리 없음).</figcaption>
+        </figure>
+        <p class="note" id="demoPending">실제 동작 영상은 촬영 후 이 자리에 올린다.</p>
+      </section>
+
+      <section aria-labelledby="discussion-title">
+        <h2 id="discussion-title"><span class="section-number">09</span>고찰</h2>
+        <h3>1. 왜 3D 거리인가</h3>
+        <p>화면 픽셀 거리를 쓰면서 손 크기 변화를 없애려면, 손바닥 길이처럼 손 안의 다른 길이로 나누는 방법이 있다. 하지만 손을 앞뒤로 기울이면 손바닥 길이는 줄어드는데 옆으로 벌린 엄지–검지 간격은 덜 줄어서 비율이 달라진다. 3D 좌표는 이런 기울기를 이미 반영한 값이라 나누기 없이 cm로 바로 쓸 수 있다. 다만 3D 좌표는 카메라 한 대의 사진에서 보통 손 크기를 가정해 추정한 값이다. 손이 아주 크거나 작으면 실제 cm와 다를 수 있고, 엄지가 검지 뒤에 가려지면 오차가 커진다. 그래서 cm 값을 화면에 띄워 두고 2 cm와 10 cm 기준을 손에 맞게 바꿀 수 있게 했다(<code>CLOSED_CM</code>, <code>OPEN_CM</code>).</p>
+
+        <h3>2. 1€ 필터 값 고르기</h3>
+        <p>필터에는 '가만히 있을 때 얼마나 걸러낼지'(<code>minCutoff</code>)와 '움직일 때 얼마나 빨리 풀어 줄지'(<code>beta</code>) 두 값이 있다. 같은 떨림과 같은 손동작을 넣고 여러 조합을 비교했다.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th><code>minCutoff</code></th><th><code>beta</code></th><th>가만히 있을 때 흔들림(슬라이더 값)</th><th>빠르게 벌린 뒤 따라오는 시간</th></tr></thead>
+            <tbody>
+              <tr><td>0.3</td><td>0.02</td><td>4</td><td>1.3초</td></tr>
+              <tr><td>1.0</td><td>0.2</td><td>10</td><td>0.1초</td></tr>
+              <tr><td><strong>0.5</strong></td><td><strong>0.2</strong></td><td><strong>6</strong></td><td><strong>0.1초 (사용)</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>떨림을 가장 많이 줄인 조합은 손을 멈춘 뒤 1초 넘게 끌려와서 쓰기 답답하다. 고른 조합은 흔들림을 약 4분의 1(25 → 6, 전체 255의 2% 정도)로 줄이면서 반응 시간은 가장 빠른 조합과 같다. 넣은 떨림(±0.4 cm)은 가정한 값이라, 실제 웹캠에서 떨림이 더 크거나 작으면 다시 맞춰야 한다.</p>
+
+        <h3>3. 조절 스위치를 손 모양으로 둔 이유</h3>
+        <p>버튼이나 키보드로 조절을 켜고 끌 수도 있지만, 그러면 한 손은 손가락 모양을 만들고 다른 손은 키보드를 눌러야 한다. 세 손가락을 접는 동작은 같은 손으로 할 수 있고, 접힌 상태가 화면 점 색으로 바로 보인다. 대신 세 손가락을 덜 접으면 '고정'으로 남는다. 손끝이 가운데 마디보다 손목 쪽으로 들어와야 접힌 것으로 보기 때문이다.</p>
+
+        <h3>4. 한계</h3>
+        <ul>
+          <li>손 인식 속도는 노트북 성능에 따라 다르다. 인식이 느리면 1€ 필터도 띄엄띄엄 값을 받아 조금 더 늦게 따라온다.</li>
+          <li>8비트 PWM이라 아주 어두운 단계는 표현이 거칠다. 슬라이더 0~4는 모두 꺼짐이고, 5부터 PWM 1이 된다.</li>
+          <li>어두운 쪽을 더 잘게 나누려면 PWM 비트 수를 늘려야 하는데, Uno의 <code>analogWrite()</code>는 8비트(0~255)만 지원한다.</li>
+        </ul>
+      </section>
+    </article>
+  </main>
+  <footer>
+    <div class="page">Arduino 실습 기록 · 앱은 카메라 영상을 브라우저 안에서만 처리하며 어디에도 보내지 않습니다.</div>
+  </footer>
+  <script>
+    fetch("assets/finger-led.mp4", { method: "HEAD", cache: "no-store" })
+      .then(r => r.ok && (r.headers.get("content-type") || "").startsWith("video/"))
+      .catch(() => false)
+      .then(video => {
+        document.querySelector("#videoFigure").hidden = !video;
+        document.querySelector("#demoPending").hidden = video;
+      });
+  </script>
+</body>
+</html>
