@@ -973,7 +973,7 @@
 
       <section aria-labelledby="wiring-title">
         <h2 id="wiring-title"><span class="section-number">04</span>회로와 연결도</h2>
-        <p>수업 회로를 그대로 쓰고 <strong>선 하나만 옮겼다</strong>. 수업 회로의 빨강 LED1은 D13 → 220 Ω → LED(+), (−) → GND로 연결되어 있다. 그런데 D13은 PWM이 없어 <code>analogWrite()</code>로 켜고 끄는 것만 된다(값 128 미만은 꺼짐, 이상은 켜짐). 그래서 D13에 꽂힌 하늘색 선을 PWM 핀인 <strong>D9</strong>로 옮겼다. 부품을 더하지 않았고, 나머지 부품(버튼, 가변저항, LCD)은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다.</p>
+        <p>수업 회로를 그대로 쓰고 <strong>선 하나만 옮겼다</strong>. 수업 회로의 빨강 LED1은 D13 → 220 Ω → LED(+), (−) → GND로 연결되어 있다. 그런데 D13은 PWM이 없어 <code>analogWrite()</code>로 켜고 끄는 것만 된다(값 128 미만은 꺼짐, 이상은 켜짐). 그래서 D13에 꽂힌 하늘색 선을 PWM 핀인 <strong>D9</strong>로 옮겼다. 부품을 더하지 않았고, 나머지 부품(버튼, 가변저항, LCD)은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다. 실제 보드에서는 LED 짧은 다리 쪽 줄을 GND 전원 줄 대신 Arduino GND 핀에 바로 연결했다(고찰 4).</p>
         <figure class="media-figure">
           <a href="assets/finger-led-breadboard.svg" aria-label="연결도 크게 보기">
             <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 빨강 LED는 하늘색 선으로 Arduino D9에 연결되고 220옴 저항을 거쳐 GND로 간다. 수업 회로의 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
@@ -1517,7 +1517,13 @@ void loop() {
             <p>Chrome에 가짜 웹캠으로 손이 찍힌 영상을 넣고 앱을 열었다. 모델이 약 5초 만에 준비되었고, 손을 찾으면 관절 21개의 3D 좌표가 들어왔다. 가변저항 손잡이를 잡은 손에서 엄지–검지 거리가 2.8~5.4 cm로 나왔다. 콘솔 오류는 없었다.</p>
           </div>
         </div>
-        <p class="note" id="hardwarePending" style="margin-top: 16px;">실제 웹캠·Arduino로 손가락 간격에 따라 LED 밝기가 바뀌는지는 촬영하면서 확인하고 이 자리에 적는다.</p>
+        <div class="verification-grid" style="margin-top: 16px;">
+          <div class="panel verified">
+            <span class="status-label" style="color: var(--blue);">확인됨</span>
+            <h3>실제 Uno와 노트북 웹캠</h3>
+            <p>스케치를 Uno에 올리고 Chrome에서 앱을 연결했다. 세 손가락을 접으면 '조절 중'이 되고, 엄지와 검지 간격에 따라 슬라이더와 LED 밝기가 함께 바뀌었다. 처음에는 LED가 켜지지 않았는데 원인은 회로였다(고찰 4).</p>
+          </div>
+        </div>
 
         <h3 style="margin-top: 26px;">PC에서 Arduino 스케치에 메시지 넣어 보기 (13항목 통과)</h3>
         <p>스케치를 PC에서 그대로 컴파일하고, 시리얼 입력과 핀 출력만 흉내 내어 여러 줄을 넣었다.</p>
@@ -1605,7 +1611,10 @@ void loop() {
         <h3>3. 조절 스위치를 손 모양으로 둔 이유</h3>
         <p>버튼이나 키보드로 조절을 켜고 끌 수도 있지만, 그러면 한 손은 손가락 모양을 만들고 다른 손은 키보드를 눌러야 한다. 세 손가락을 접는 동작은 같은 손으로 할 수 있고, 접힌 상태가 화면 점 색으로 바로 보인다. 대신 세 손가락을 덜 접으면 '고정'으로 남는다. 손끝이 가운데 마디보다 손목 쪽으로 들어와야 접힌 것으로 보기 때문이다.</p>
 
-        <h3>4. 한계</h3>
+        <h3>4. 실제 회로에서 LED가 켜지지 않았던 일</h3>
+        <p>처음 연결했을 때 손가락에 따라 화면의 'Arduino PWM' 값은 바뀌는데 LED는 계속 꺼져 있었다. Arduino가 실제로 쓴 PWM 값을 되돌려 보내게 해 두었으므로, 값이 바뀐다는 것은 명령이 도착해 D9에 출력되고 있다는 뜻이다. 그래서 코드가 아니라 회로를 의심했다. D9 선 끝을 5V에 꽂아도 켜지지 않아 회로 문제로 좁혀졌고, LED 짧은 다리 쪽을 브레드보드 GND 전원 줄 대신 Arduino GND 핀에 바로 연결하자 켜졌다. GND 전원 줄이 Arduino GND와 이어져 있지 않았던 것이다. 긴 브레드보드는 전원 줄이 가운데에서 끊어진 제품도 있어서, 전원 줄을 쓸 때는 실제로 이어져 있는지 먼저 확인해야 한다.</p>
+
+        <h3>5. 한계</h3>
         <ul>
           <li>손 인식 속도는 노트북 성능에 따라 다르다. 인식이 느리면 1€ 필터도 띄엄띄엄 값을 받아 조금 더 늦게 따라온다.</li>
           <li>8비트 PWM이라 아주 어두운 단계는 표현이 거칠다. 슬라이더 0~4는 모두 꺼짐이고, 5부터 PWM 1이 된다.</li>
