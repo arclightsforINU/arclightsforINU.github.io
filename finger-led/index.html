@@ -856,8 +856,21 @@
       border-radius: 12px;
     }
 
+    .portrait-video video {
+      aspect-ratio: 9 / 16;
+      width: min(100%, 420px);
+      margin: 0 auto;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
     @media (max-width: 760px) {
-      .flow-list {
+      .flow-list,
+      .photo-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -973,12 +986,12 @@
 
       <section aria-labelledby="wiring-title">
         <h2 id="wiring-title"><span class="section-number">04</span>회로와 연결도</h2>
-        <p>수업 회로를 그대로 쓰고 <strong>선 하나만 옮겼다</strong>. 수업 회로의 빨강 LED1은 D13 → 220 Ω → LED(+), (−) → GND로 연결되어 있다. 그런데 D13은 PWM이 없어 <code>analogWrite()</code>로 켜고 끄는 것만 된다(값 128 미만은 꺼짐, 이상은 켜짐). 그래서 D13에 꽂힌 하늘색 선을 PWM 핀인 <strong>D9</strong>로 옮겼다. 부품을 더하지 않았고, 나머지 부품(버튼, 가변저항, LCD)은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다. 실제 보드에서는 LED 짧은 다리 쪽 줄을 GND 전원 줄 대신 Arduino GND 핀에 바로 연결했다(고찰 4).</p>
+        <p>수업 회로를 그대로 쓰고 <strong>선 하나만 옮겼다</strong>. 수업 회로의 LED는 D13 → 220 Ω → LED(+), (−) → GND로 연결되어 있다. 그런데 D13은 PWM이 없어 <code>analogWrite()</code>로 켜고 끄는 것만 된다(값 128 미만은 꺼짐, 이상은 켜짐). 그래서 D13에 꽂힌 LED 선을 PWM 핀인 <strong>D9</strong>로 옮겼다. LED는 파랑 하나만 쓰고(지난 과제에서 더한 두 번째 LED는 뺐다), 부품을 새로 더하지 않았다. 나머지 부품(버튼, 가변저항, LCD)은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다. 실제 보드에서는 LED 짧은 다리 쪽 줄을 GND 전원 줄 대신 Arduino GND 핀에 바로 연결했다(고찰 4).</p>
         <figure class="media-figure">
           <a href="assets/finger-led-breadboard.svg" aria-label="연결도 크게 보기">
-            <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 빨강 LED는 하늘색 선으로 Arduino D9에 연결되고 220옴 저항을 거쳐 GND로 간다. 수업 회로의 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
+            <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 파랑 LED는 하늘색 선으로 Arduino D9에 연결되고 220옴 저항을 거쳐 GND로 간다. 수업 회로의 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
           </a>
-          <figcaption>수업 Fritzing 파일(PotButtonLCD.fzz)의 브레드보드 화면을 같은 부품 그림과 좌표로 다시 그리고, LED 선(하늘색)의 Arduino 쪽 끝만 D13에서 D9로 옮긴 연결도다. 부품 그림은 Fritzing 기본 부품(fritzing-parts, CC BY-SA 3.0)이고, LCD는 수업 파일에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley)이다.</figcaption>
+          <figcaption>수업 Fritzing 파일(PotButtonLCD.fzz)의 브레드보드 화면을 같은 부품 그림과 좌표로 다시 그리고, LED 선(하늘색)의 Arduino 쪽 끝을 D13에서 D9로 옮기고 LED를 실제와 같은 파랑으로 그린 연결도다. 부품 그림은 Fritzing 기본 부품(fritzing-parts, CC BY-SA 3.0)이고, LCD는 수업 파일에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley)이다.</figcaption>
         </figure>
         <div class="asset-links">
           <a href="assets/finger-led-breadboard.svg" download>연결도 다운로드 (.svg)</a>
@@ -990,7 +1003,7 @@
             <table class="pin-table">
               <thead><tr><th>Arduino</th><th>연결</th><th>이번 스케치</th></tr></thead>
               <tbody>
-                <tr><td><strong>D9 (~)</strong></td><td><strong>하늘색 선 → 220 Ω → 빨강 LED(+), (−) → GND</strong></td><td><strong>PWM 밝기 (D13에서 옮김)</strong></td></tr>
+                <tr><td><strong>D9 (~)</strong></td><td><strong>하늘색 선 → 220 Ω → 파랑 LED(+), (−) → GND</strong></td><td><strong>PWM 밝기 (D13에서 옮김)</strong></td></tr>
                 <tr><td>USB</td><td>노트북과 연결</td><td>Web Serial 9600 baud</td></tr>
                 <tr><td>D13</td><td>비어 있음</td><td></td></tr>
                 <tr><td>D2, A0, A4/A5</td><td>수업 회로(버튼, 가변저항, LCD)</td><td>사용 안 함</td></tr>
@@ -1580,13 +1593,20 @@ void loop() {
 
       <section aria-labelledby="demo-title">
         <h2 id="demo-title"><span class="section-number">08</span>실제 동작</h2>
-        <figure class="media-figure" id="videoFigure" hidden>
-          <video controls playsinline preload="metadata" poster="assets/finger-led-poster.jpg" aria-label="손가락 간격으로 LED 밝기를 조절하는 실제 동작 영상">
+        <figure class="media-figure portrait-video">
+          <video controls playsinline preload="metadata" poster="assets/finger-led-poster.jpg" aria-label="손가락 간격으로 파랑 LED 밝기를 조절하는 실제 동작 영상">
             <source src="assets/finger-led.mp4" type="video/mp4">
           </video>
-          <figcaption>실제 동작 영상(소리 없음).</figcaption>
+          <figcaption>실제 동작 영상(20초, 소리 없음). 모니터 위 웹캠 앞에서 세 손가락을 접고 엄지와 검지 간격을 바꾸면, 앱의 슬라이더와 'Arduino PWM' 값, 브레드보드의 파랑 LED 밝기가 함께 바뀐다. 중간에는 브레드보드를 가까이 찍었다. 화면 맨 위의 브라우저 탭과 북마크는 흐리게 처리했다.</figcaption>
         </figure>
-        <p class="note" id="demoPending">실제 동작 영상은 촬영 후 이 자리에 올린다.</p>
+        <figure class="media-figure">
+          <div class="photo-grid">
+            <a href="assets/finger-led-circuit.jpg"><img class="photo" src="assets/finger-led-circuit.jpg" alt="실제 회로 전체. Arduino Uno와 브레드보드가 선으로 연결되어 있고 브레드보드 왼쪽 위의 파랑 LED가 켜져 있다." loading="lazy"></a>
+            <a href="assets/finger-led-breadboard-photo.jpg"><img class="photo" src="assets/finger-led-breadboard-photo.jpg" alt="브레드보드를 가까이 찍은 사진. 켜진 파랑 LED 옆에 저항과 초록 선 두 개가 꽂혀 있고, 버튼과 가변저항도 보인다." loading="lazy"></a>
+            <a href="assets/finger-led-pins.jpg"><img class="photo" src="assets/finger-led-pins.jpg" alt="Arduino Uno를 가까이 찍은 사진. 위쪽 디지털 핀 줄의 ~9번과 2번에 초록 선이 꽂혀 있다." loading="lazy"></a>
+          </div>
+          <figcaption>실제 회로. 왼쪽부터 전체, 브레드보드, Arduino 핀이다. 위쪽 핀 줄의 초록 선 두 개 중 ~9번은 LED로 가고, 2번은 버튼으로 간다(이번 스케치에서는 쓰지 않음).</figcaption>
+        </figure>
       </section>
 
       <section aria-labelledby="discussion-title">
@@ -1626,14 +1646,5 @@ void loop() {
   <footer>
     <div class="page">Arduino 실습 기록 · 앱은 카메라 영상을 브라우저 안에서만 처리하며 어디에도 보내지 않습니다.</div>
   </footer>
-  <script>
-    fetch("assets/finger-led.mp4", { method: "HEAD", cache: "no-store" })
-      .then(r => r.ok && (r.headers.get("content-type") || "").startsWith("video/"))
-      .catch(() => false)
-      .then(video => {
-        document.querySelector("#videoFigure").hidden = !video;
-        document.querySelector("#demoPending").hidden = video;
-      });
-  </script>
 </body>
 </html>

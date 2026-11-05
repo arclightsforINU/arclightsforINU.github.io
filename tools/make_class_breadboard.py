@@ -1,6 +1,6 @@
 # Renders the class PotButtonLCD.fz breadboard view and the assignment circuits built on it (SVG + PNG):
 #   p5-led-slider  LED2 and its resistor added on D9
-#   finger-led     LED1's wire moved from D13 to D9 (D13 has no PWM), nothing added
+#   finger-led     LED1's wire moved from D13 to D9 (D13 has no PWM) and the LED drawn blue as on the real board
 import re
 import struct
 import subprocess
@@ -247,6 +247,8 @@ def add_led2(insts, holes, uno):
 def move_led1_to_d9(insts, holes, uno):
     # The class file's D13 wire ends at the Uno; move that end four pins along to D9 and carry the
     # curve's near control point with it, so the wire keeps its shape.
+    led1 = next(i for i in insts if i["module"] == LED)
+    led1["props"] = dict(led1["props"], color=LED2_COLOR)
     d13 = uno_pin(uno, D13_CONNECTOR)
     d9 = uno_pin(uno, D9_CONNECTOR)
     wire = next(w for w in insts if w["module"] == WIRE
@@ -332,7 +334,7 @@ VARIANTS = {
     "p5-led-slider": (add_led2, ("LED2 · D9 (PWM)", (398.0, 22.0)), LAB / "p5-led-slider/assets/p5-led-slider-breadboard",
                       "Arduino Uno LED slider breadboard wiring: LED2 on D9 added"),
     "finger-led": (move_led1_to_d9, ("LED · D9 (PWM)", (330.0, 22.0)), LAB / "finger-led/assets/finger-led-breadboard",
-                   "Arduino Uno finger dimmer breadboard wiring: LED1 moved from D13 to D9"),
+                   "Arduino Uno finger dimmer breadboard wiring: the LED moved from D13 to D9"),
 }
 
 
