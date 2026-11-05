@@ -1,5 +1,6 @@
 // Feeds serial lines to finger_led.ino on the host and checks D9 and the replies.
-// Build: c++ -std=c++17 -I. ino_test.cpp -o /tmp/ino_test && /tmp/ino_test
+// Build from the project root:
+//   clang++ -std=c++17 -I arduino-lab/tools/fingersim arduino-lab/tools/fingersim/ino_test.cpp -o _build/finger_ino_check
 #include "Arduino.h"
 
 int simPin[20];

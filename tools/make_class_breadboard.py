@@ -1,4 +1,6 @@
-# Renders the class PotButtonLCD.fz breadboard view (original PNG) and the assignment version with LED2 on D9 (SVG + PNG).
+# Renders the class PotButtonLCD.fz breadboard view and the assignment circuits built on it (SVG + PNG):
+#   p5-led-slider  LED2 and its resistor added on D9
+#   finger-led     LED1's wire moved from D13 to D9 (D13 has no PWM), nothing added
 import re
 import struct
 import subprocess
@@ -6,7 +8,6 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 LED2_COLOR = "Blue (470nm)"
-LED2_LABEL = "LED2 · D9 (PWM)"
 
 SVG = "http://www.w3.org/2000/svg"
 XLINK = "http://www.w3.org/1999/xlink"
@@ -21,11 +22,6 @@ FZ = FZZ / "PotButtonLCD.fz"
 PARTS = ROOT / "_build/fritzing-parts"
 APP = ROOT / "_build/fritzing-app"
 SCRATCH = ROOT / "_build/p5-slider"
-OUT_DIR = LAB / "p5-led-slider/assets"
-OUT_SVG = OUT_DIR / "p5-led-slider-breadboard.svg"
-OUT_PNG = OUT_DIR / "p5-led-slider-breadboard.png"
-ORIG_SVG = SCRATCH / "class-original.svg"
-ORIG_PNG = SCRATCH / "class-original.png"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PNG_WIDTH = 2000
 
@@ -41,8 +37,8 @@ UNIT_IN = {"in": 1.0, "mm": 1 / 25.4, "cm": 1 / 2.54, "pt": 1 / 72, "pc": 1 / 6}
 LED2_SHIFT_COLS = 9
 LED2_GND_RAIL_PIN = "pin15X"
 D9_CONNECTOR = "connector52"
+D13_CONNECTOR = "connector56"
 D9_CP = ((-24.0, -105.0), (-140.0, -170.0))
-LABEL_POS = (398.0, 22.0)
 
 
 def el(tag, attrs=None, parent=None, text=None):
@@ -248,24 +244,37 @@ def add_led2(insts, holes, uno):
     return [led2, r3, *wires]
 
 
-def label_group():
-    w = len(LED2_LABEL) * 5.3 + 12
-    x, y = LABEL_POS
-    g = el("g", {"id": "led2-label"})
+def move_led1_to_d9(insts, holes, uno):
+    # The class file's D13 wire ends at the Uno; move that end four pins along to D9 and carry the
+    # curve's near control point with it, so the wire keeps its shape.
+    d13 = uno_pin(uno, D13_CONNECTOR)
+    d9 = uno_pin(uno, D9_CONNECTOR)
+    wire = next(w for w in insts if w["module"] == WIRE
+                and abs(w["x"] + w["p2"][0] - d13[0]) < 0.5 and abs(w["y"] + w["p2"][1] - d13[1]) < 0.5)
+    dx, dy = d9[0] - d13[0], d9[1] - d13[1]
+    (c0, c1) = wire["bezier"]
+    wire.update(p2=(wire["p2"][0] + dx, wire["p2"][1] + dy), bezier=(c0, (c1[0] + dx, c1[1] + dy)))
+    return []
+
+
+def label_group(text, pos):
+    w = len(text) * 5.3 + 12
+    x, y = pos
+    g = el("g", {"id": "pin-label"})
     el("rect", {"x": f"{x - w / 2:.1f}", "y": y - 7.5, "width": f"{w:.1f}", "height": 15, "rx": 7.5, "fill": "#ffffff",
                 "stroke": "#555555", "stroke-width": 0.8}, g)
     el("text", {"x": x, "y": y + 3.4, "text-anchor": "middle", "font-size": 9, "font-weight": "bold",
-                "font-family": "Arial, Helvetica, sans-serif", "fill": "#222222"}, g, LED2_LABEL)
+                "font-family": "Arial, Helvetica, sans-serif", "fill": "#222222"}, g, text)
     return g
 
 
-def build(with_led2):
+def build(change, label):
     insts = read_instances()
     bb = next(i for i in insts if i["module"] == BREADBOARD)
     uno = next(i for i in insts if i["module"] == UNO)
     holes = breadboard_holes(bb)
-    if with_led2:
-        insts += add_led2(insts, holes, uno)
+    if change:
+        insts += change(insts, holes, uno)
     insts.sort(key=lambda i: i["z"])
     shadows = wire_shadows()
     colors = led_colors()
@@ -283,10 +292,11 @@ def build(with_led2):
         body.append(grp)
         xs += [x, x + w]
         ys += [y, y + h]
-    if with_led2:
-        body.append(label_group())
-        xs += [LABEL_POS[0] - 60, LABEL_POS[0] + 60]
-        ys += [LABEL_POS[1] - 12]
+    if label:
+        text, pos = label
+        body.append(label_group(text, pos))
+        xs += [pos[0] - 60, pos[0] + 60]
+        ys += [pos[1] - 12]
     return body, (min(xs) - 20, min(ys) - 20, max(xs) + 20, max(ys) + 20)
 
 
@@ -313,15 +323,25 @@ def write(body, bounds, svg_path, png_path, title, desc):
     print(svg_path, png_path, size)
 
 
+CREDIT = ("Breadboard, Arduino Uno (Rev3), potentiometer, pushbutton, LED and resistor graphics are from Fritzing "
+          "(fritzing-parts), CC BY-SA 3.0. The LCD1602-I2C graphic is the custom part in the class's PotButtonLCD.fzz.")
+
+# name -> (change to the class circuit, pin label (text, position), output stem, title)
+VARIANTS = {
+    "class": (None, None, SCRATCH / "class-original", "PotButtonLCD breadboard (class file)"),
+    "p5-led-slider": (add_led2, ("LED2 · D9 (PWM)", (398.0, 22.0)), LAB / "p5-led-slider/assets/p5-led-slider-breadboard",
+                      "Arduino Uno LED slider breadboard wiring: LED2 on D9 added"),
+    "finger-led": (move_led1_to_d9, ("LED · D9 (PWM)", (330.0, 22.0)), LAB / "finger-led/assets/finger-led-breadboard",
+                   "Arduino Uno finger dimmer breadboard wiring: LED1 moved from D13 to D9"),
+}
+
+
 def main():
     SCRATCH.mkdir(parents=True, exist_ok=True)
-    credit = ("Breadboard, Arduino Uno (Rev3), potentiometer, pushbutton, LED and resistor graphics are from Fritzing "
-              "(fritzing-parts), CC BY-SA 3.0. The LCD1602-I2C graphic is the custom part in the class's PotButtonLCD.fzz.")
-    body, bounds = build(False)
-    write(body, bounds, ORIG_SVG, ORIG_PNG, "PotButtonLCD breadboard (class file)", credit)
-    body, bounds = build(True)
-    write(body, bounds, OUT_SVG, OUT_PNG, "Arduino Uno LED slider breadboard wiring",
-          credit + " Rendered from the class Fritzing file with LED2 on D9 added.")
+    for change, label, stem, title in VARIANTS.values():
+        body, bounds = build(change, label)
+        write(body, bounds, stem.with_suffix(".svg"), stem.with_suffix(".png"), title,
+              CREDIT + " Rendered from the class Fritzing file. " + title + ".")
 
 
 if __name__ == "__main__":

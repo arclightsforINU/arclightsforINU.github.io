@@ -973,12 +973,12 @@
 
       <section aria-labelledby="wiring-title">
         <h2 id="wiring-title"><span class="section-number">04</span>회로와 연결도</h2>
-        <p>회로는 지난 p5 슬라이더 과제와 같다. 수업 회로에 더한 <strong>파랑 LED2와 220 Ω 저항</strong>을 쓴다. D9 → 220 Ω → LED2 긴 다리(+), 짧은 다리(−) → GND 레일이다. 수업 회로의 나머지 부품은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다.</p>
+        <p>수업 회로를 그대로 쓰고 <strong>선 하나만 옮겼다</strong>. 수업 회로의 빨강 LED1은 D13 → 220 Ω → LED(+), (−) → GND로 연결되어 있다. 그런데 D13은 PWM이 없어 <code>analogWrite()</code>로 켜고 끄는 것만 된다(값 128 미만은 꺼짐, 이상은 켜짐). 그래서 D13에 꽂힌 하늘색 선을 PWM 핀인 <strong>D9</strong>로 옮겼다. 부품을 더하지 않았고, 나머지 부품(버튼, 가변저항, LCD)은 꽂힌 채로 두지만 이번 스케치에서는 쓰지 않는다.</p>
         <figure class="media-figure">
           <a href="assets/finger-led-breadboard.svg" aria-label="연결도 크게 보기">
-            <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 파랑 LED2가 초록 선으로 D9에서 220옴 저항을 거쳐 연결되고 음극은 GND 레일로 간다. 수업 회로의 LED1(D13), 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
+            <img src="assets/finger-led-breadboard.svg" alt="브레드보드 연결도. 빨강 LED는 하늘색 선으로 Arduino D9에 연결되고 220옴 저항을 거쳐 GND로 간다. 수업 회로의 버튼(D2), 가변저항(A0), I2C LCD(A4, A5)도 꽂혀 있다." loading="lazy">
           </a>
-          <figcaption>수업 Fritzing 파일(PotButtonLCD.fzz)의 브레드보드 화면을 같은 부품 그림과 좌표로 다시 그리고 LED2·220 Ω 저항·D9 선(초록)을 더한 연결도다(지난 과제와 같은 그림). 부품 그림은 Fritzing 기본 부품(fritzing-parts, CC BY-SA 3.0)이고, LCD는 수업 파일에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley)이다.</figcaption>
+          <figcaption>수업 Fritzing 파일(PotButtonLCD.fzz)의 브레드보드 화면을 같은 부품 그림과 좌표로 다시 그리고, LED 선(하늘색)의 Arduino 쪽 끝만 D13에서 D9로 옮긴 연결도다. 부품 그림은 Fritzing 기본 부품(fritzing-parts, CC BY-SA 3.0)이고, LCD는 수업 파일에 들어 있는 'LCD1602-I2C' 부품(작성자 Stephen Lilley)이다.</figcaption>
         </figure>
         <div class="asset-links">
           <a href="assets/finger-led-breadboard.svg" download>연결도 다운로드 (.svg)</a>
@@ -990,16 +990,17 @@
             <table class="pin-table">
               <thead><tr><th>Arduino</th><th>연결</th><th>이번 스케치</th></tr></thead>
               <tbody>
-                <tr><td><strong>D9 (~)</strong></td><td><strong>220 Ω → 파랑 LED2(+), (−) → GND</strong></td><td><strong>PWM 밝기</strong></td></tr>
+                <tr><td><strong>D9 (~)</strong></td><td><strong>하늘색 선 → 220 Ω → 빨강 LED(+), (−) → GND</strong></td><td><strong>PWM 밝기 (D13에서 옮김)</strong></td></tr>
                 <tr><td>USB</td><td>노트북과 연결</td><td>Web Serial 9600 baud</td></tr>
-                <tr><td>D13, D2, A0, A4/A5</td><td>수업 회로(LED1, 버튼, 가변저항, LCD)</td><td>사용 안 함</td></tr>
+                <tr><td>D13</td><td>비어 있음</td><td></td></tr>
+                <tr><td>D2, A0, A4/A5</td><td>수업 회로(버튼, 가변저항, LCD)</td><td>사용 안 함</td></tr>
               </tbody>
             </table>
           </div>
           <div class="panel">
             <h3>준비물</h3>
             <ul class="parts-list">
-              <li>Arduino Uno, LED 1개, 220 Ω 저항 1개, 점퍼선</li>
+              <li>수업 회로 그대로 (Arduino Uno, LED, 220 Ω 저항 포함). 추가 부품 없음</li>
               <li>웹캠이 있는 노트북</li>
               <li>Chrome 또는 Edge (Web Serial과 카메라를 쓰는 브라우저)</li>
             </ul>
@@ -1493,6 +1494,7 @@ void loop() {
       <section aria-labelledby="usage-title">
         <h2 id="usage-title"><span class="section-number">06</span>사용법</h2>
         <ol>
+          <li>수업 회로에서 D13에 꽂힌 LED 선을 D9로 옮긴다.</li>
           <li>Arduino IDE로 <code>finger_led.ino</code>를 Uno에 올린다.</li>
           <li>Chrome이나 Edge로 <a href="app/">앱</a>을 열고 카메라를 허용한다. 손 인식 모델을 불러오는 데 몇 초 걸린다.</li>
           <li><strong>Arduino 연결</strong>을 누르고 Uno의 포트를 고른다. '연결됨'이 뜨면 준비가 끝난 것이다.</li>
@@ -1573,7 +1575,7 @@ void loop() {
       <section aria-labelledby="demo-title">
         <h2 id="demo-title"><span class="section-number">08</span>실제 동작</h2>
         <figure class="media-figure" id="videoFigure" hidden>
-          <video controls playsinline preload="metadata" poster="assets/finger-led-poster.jpg" aria-label="손가락 간격으로 파랑 LED 밝기를 조절하는 실제 동작 영상">
+          <video controls playsinline preload="metadata" poster="assets/finger-led-poster.jpg" aria-label="손가락 간격으로 LED 밝기를 조절하는 실제 동작 영상">
             <source src="assets/finger-led.mp4" type="video/mp4">
           </video>
           <figcaption>실제 동작 영상(소리 없음).</figcaption>
